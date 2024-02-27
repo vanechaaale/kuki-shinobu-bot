@@ -48,11 +48,17 @@ async def get_genshin_api_client(discord_id: int):
     Returns: 
     str - Success message.
 """
-async def authenticate(discord_id: int, uid: int, ltuid: int, ltmid: str, ltoken: str):
-    cookies = {"ltuid": ltuid, 
-            "ltmid_v2": ltmid, 
-            "ltoken_v2": ltoken}
+async def authenticate(discord_id: int, uid: int, ltuid: int, ltmid: str, ltoken: str, cookie_token: str):
+    cookies = {
+        "ltuid_v2": ltuid, 
+        "ltmid_v2": ltmid, 
+        "ltoken_v2": ltoken,
+        "cookie_token_v2": cookie_token,
+        "account_id_v2": ltuid,
+        "account_mid_v2": ltmid,
+        }
     client = genshin.Client(cookies, game=genshin.Game.GENSHIN)
+    initial_user = get_user_from_db(discord_id) if get_user_from_db(discord_id) else None
     try:
         # add cookies to payload
         payload = {
@@ -61,23 +67,32 @@ async def authenticate(discord_id: int, uid: int, ltuid: int, ltmid: str, ltoken
         }
         if uid:
             payload["uid"] = uid
-        # 1) Check if discord user is already in database
-        # 2) If not, add user to database
-        # 3) Else update user data
+
+        # 1) Check if discord user's genshin info is already in database
         if not get_user_from_db(discord_id):
-            add_to_users(discord_id, uid, ltuid, ltmid, ltoken)
+            # 2) If not, add user to database
+            add_to_users(payload)
         else:
+            # 3) Else update user data
             update_user(discord_id, payload)
-        # try fetching user data with cookies
+
+        # Check if cookies are invalid by trying to query a user
         await client.get_genshin_user(uid)
+
     except genshin.errors.InvalidCookies:
-        return "Invalid cookies"
+        # Revert to previous user data if cookies are invalid
+        if initial_user:
+            update_user(discord_id, initial_user)
+        return "Error during HoyoLab authentication. Please check your credentials and try again."
     return "Successfully authenticated HoyoLab cookies/Genshin Account info."
 
 async def claim_daily_rewards(discord_id: int):
     client = await get_genshin_api_client(discord_id)
     message = await client.claim_daily_reward()
     return message 
-        
 
-# asyncio.run(main())
+async def redeem_code(code: str, discord_id: int):
+    client = await get_genshin_api_client(discord_id)
+    message = await client.redeem_code(code)
+    return message
+        

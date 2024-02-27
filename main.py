@@ -6,6 +6,7 @@ from enkapy import Enka
 from dotenv import load_dotenv
 from apis.enka_api import *
 from apis.genshin_api import *
+from apis.genshin_dev import *
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -54,7 +55,13 @@ async def _commands(ctx: interactions.CommandContext):
                 "description": "ltoken_v2",
                 "type": 3,
                 "required": True,
-            },  
+            }, 
+            {
+                "name": "cookie_token",
+                "description": "cookie_token_v2",
+                "type": 3,
+                "required": True,
+            },
             {
                 "name": "uid",
                 "description": "Genshin player UID. (Optional)",
@@ -64,7 +71,14 @@ async def _commands(ctx: interactions.CommandContext):
         ]
 
 )
-async def _authenticate(ctx: interactions.CommandContext, ltuid: int, ltmid: str, ltoken: str, uid: int = False):
+async def _authenticate(
+    ctx: interactions.CommandContext, 
+    ltuid: int, 
+    ltmid: str, 
+    ltoken: str,
+    cookie_token: str, 
+    uid: int = False):
+
     # get discord user id
     discord_id = ctx.author.id
     # wait for bot to authenticate
@@ -72,7 +86,7 @@ async def _authenticate(ctx: interactions.CommandContext, ltuid: int, ltmid: str
     # defer response
     await ctx.defer()
 
-    auth = await authenticate(discord_id, uid, ltuid, ltmid, ltoken)
+    auth = await authenticate(discord_id, uid, ltuid, ltmid, ltoken, cookie_token)
 
     # send response
     await ctx.send(auth)
@@ -80,7 +94,7 @@ async def _authenticate(ctx: interactions.CommandContext, ltuid: int, ltmid: str
 """
     Fetch a Genshin player's summary. If no UID is provided, default to author's UID.
 
-    Requirements: Cookies & Authentication
+    Requirements: Cookies & Authentication Tokens
 """
 @client.command(
         name="summary",
@@ -95,15 +109,57 @@ async def _authenticate(ctx: interactions.CommandContext, ltuid: int, ltmid: str
         ]
 )
 async def _summary(ctx: interactions.CommandContext, uid: int = False):
+    await ctx.defer()
     summary_str = await get_user_summary(uid, ctx.author.id)
     await ctx.send(summary_str)
 
+@client.command(
+        name="showcase",
+        description="Show Genshin player's character showcase.",
+        options=[
+            {
+                "name": "uid",
+                "description": "Genshin player UID",
+                "type": 3,
+                "required": False,
+            }
+        ]
+)
+async def _showcase(ctx: interactions.CommandContext, uid: int = False):
+    await ctx.defer()
+    showcase_str = await get_user_showcase(uid, ctx.author.id)
+    await ctx.send(showcase_str)
+
+@client.command(
+        name="skills",
+        description="Show Genshin player's character skills.",
+)
+async def _skills(ctx: interactions.CommandContext, name: str):
+    await ctx.send(get_character_talents(name))
+    
 @client.command(
         name="daily",
         description="Claim daily rewards from the HoyoLab website."
 )
 async def _daily(ctx: interactions.CommandContext):
     success_msg = await claim_daily_rewards(ctx.author.id)
+    await ctx.send(success_msg)
+
+@client.command(
+        name="redeem",
+        description="Redeem Genshin Impact codes.",
+        options=[
+            {
+                "name": "code",
+                "description": "Genshin Impact redemption code.",
+                "type": 3,
+                "required": True,
+            }
+        ]
+)
+async def _redeem(ctx: interactions.CommandContext, code: str):
+    await ctx.defer()
+    success_msg = await redeem_code(code, ctx.author.id)
     await ctx.send(success_msg)
 
 @client.event

@@ -85,6 +85,41 @@ async def get_user_summary(uid: int, discord_id: int):
     summary_str += f'Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}\n'
     return summary_str
 
+async def get_user_showcase(uid: int, discord_id: int):
+    # If UID is not provided, look for the author's UID
+    await client.load_lang()
+    if not uid:
+        user = get_user_from_db(discord_id)
+        uid = user['uid']
 
-#loop = asyncio.get_event_loop()
-#loop.run_until_complete(main())
+    user = await client.fetch_user(uid)
+    showcase_str = f"UID: {uid}\n"
+    for character in user.characters:
+        showcase_str += f"Name: {character.name}\n"
+        showcase_str += f"Level: {character.level}\n"
+        showcase_str += 'Weapon:\n'
+        weapon = character.weapon
+        showcase_str += f'\tName: {weapon.name}\n'
+        showcase_str += f'\tLevel: {weapon.level}\n'
+        showcase_str += f'\tRefine: {weapon.refine}\n'
+        showcase_str += f'\tStar level: {weapon.rank}\n'
+    
+        showcase_str += 'Constellations:\n'
+        for constellation in character.constellations:
+            if constellation.activated:
+                showcase_str += f'\t{constellation.name} Activated\n'
+        showcase_str += 'Skills:\n'
+        for skill in character.skills:
+            if skill.type == 0:
+                showcase_str += f'\tNormal Attack level: {skill.level}\n'
+            elif skill.type == 1:
+                showcase_str += f'\tElemental skill level: {skill.level}\n'
+            elif skill.type == 2:
+                showcase_str += f'\tElemental burst level: {skill.level}\n'
+        showcase_str += 'Artifacts:\n'
+        for artifact in character.artifacts:
+            showcase_str += f'\t{artifact.set_name} {artifact.name}:\n'
+            showcase_str += f'\t{artifact.main_stat.prop}:{artifact.main_stat.value}\n'
+            for sub_stats in artifact.sub_stats:
+                showcase_str += f'\t\t{sub_stats.prop}:{sub_stats.value}\n'
+    return showcase_str

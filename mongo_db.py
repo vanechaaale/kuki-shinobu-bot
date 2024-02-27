@@ -13,17 +13,16 @@ client = MongoClient(MONGODB_URI)
     Add a discord user to the database.
 
     Parameters:
-    discord_id: Discord user id.
-    uid: Genshin UID.
-    ltuid: ltuid_v2.
-    ltmid: ltmid_v2.
-    ltoken: ltoken_v2.
+      payload: dict - Discord user information.
+   
+    Returns:
+      The user added to the database.
 """
-def add_to_users(discord_id: int, 
-                 uid: int, 
-                 ltuid: int, 
-                 ltmid: str, 
-                 ltoken: str):
+def add_to_users(payload: dict):
+   discord_id = payload['discord_id']
+   uid = payload['uid']
+   authentication_tokens = payload['authentication_tokens']
+
    # Get reference to Discord Users database
    db = client['discord_users']
 
@@ -34,11 +33,7 @@ def add_to_users(discord_id: int,
    user_added = users_collection.insert_one({
       "discord_id": str(discord_id),
       "uid": uid,
-      "authentication_tokens": {
-         "ltuid_v2": ltuid,
-         "ltmid_v2": ltmid,
-         "ltoken_v2": ltoken
-      }
+      "authentication_tokens": authentication_tokens, 
    })
    return user_added
 
