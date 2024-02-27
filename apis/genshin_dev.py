@@ -1,8 +1,8 @@
 import datetime
 import requests
 
-from utils.constants import WEEKDAYS, CHAR_TO_URL
-from utils.utils import create_embed, create_page_buttons
+from utils.constants import WEEKDAYS, CHAR_TO_URL, VISION_TO_COLOR
+from utils.utils import create_embed
 
 endpoint = "https://genshin.jmp.blue"
 
@@ -12,7 +12,8 @@ def get_characters():
     return characters
 
 def get_character(name: str):
-    url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")
+    # check if character name is in CHAR_TO_URL, not case sensitive
+    url_name = get_char_url_name(name)
     characters = get_characters()
     for character in characters:
         if character.lower() == url_name.lower():
@@ -81,34 +82,60 @@ def get_char_cons_list(name: str):
     cons = character["constellations"]
     return cons
 
-def format_char_info(name: str, type: str):
+"""
+    Get the character's  combat talents, passive talents, or constellations info.
+
+    Parameters:
+    name: str - Character name.
+    type: str - Type of skill. (Normal Attack, Elemental Skill, Elemental Burst, Passive, Constellations)
+
+    Returns:
+    embed - Embed of the character's combat talents, passive talents, or constellations.
+"""
+def embed_char_info(name: str, type: str):
     character = get_character(name)
 
     char_name = character["name"]
-    skills = ["na", "e_skill", "e_burst", "passive", "constellations"]
+    skills = ["Normal Attack", "Elemental Skill", "Elemental Burst", "Passive", "Constellations"]
     list = []
     result_str = ""
+    embed_icon = ""
     if type not in skills:
         return f"Invalid skill type. Please choose from {skills}"
     else:
-        if type == "na":
+        if type == "Normal Attack":
             list = get_char_combat_talents(name)
-            result_str = f"**Normal Attack**\n{format_normal_attack(list)}"
-        elif type == "e_skill":
+            result_str = format_normal_attack(list)
+            embed_icon = get_talent_na_icon(name)
+        elif type == "Elemental Skill":
             list = get_char_combat_talents(name)
-            result_str = f"**Elemental Skill**\n{format_e_skill(list)}"
-        elif type == "e_burst":
+            result_str = format_e_skill(list)
+            embed_icon = get_talent_skill_icon(name)
+        elif type == "Elemental Burst":
             list = get_char_combat_talents(name)
-            result_str = f"**Elemental Burst**\n{format_e_burst(list)}"
-        elif type == "passive":
+            result_str = format_e_burst(list)
+            embed_icon = get_talent_burst_icon(name)
+        elif type == "Passive":
             list = get_char_passive_talents_list(name)
-            result_str = f"**Passive Talents**\n\n{format_passives_cons(list)}"
-        elif type == "constellations":
+            result_str = format_passives_cons(list)
+            embed_icon = get_character_icon(name)
+        elif type == "Constellations":
             list = get_char_cons_list(name)
-            result_str = f"**Constellations**\n\n{format_passives_cons(list)}"
+            result_str = format_passives_cons(list)
+            embed_icon = get_character_icon(name)
 
-    return f"**{char_name}** " + result_str
-           # f"**Description:** {character['description']}\n"
+    embed = create_embed(
+        name=type,
+        title=char_name,
+        icon=embed_icon,
+        text=result_str,
+        color=VISION_TO_COLOR[get_vision(name)],
+        page=1,
+        total_pages=1
+    )
+    return embed
+        # f"**{char_name}** " + result_str
+        # f"**Description:** {character['description']}\n"
 
 def format_passives_cons(list: list):
     formatted_list = ""
@@ -236,3 +263,40 @@ def get_guide_icon(name: str):
     response = requests.get(url)
     icon = response.url
     return icon
+
+def get_talent_na_icon(name: str):
+    # https://genshin.jmp.blue/characters/ganyu/talent-na
+    url_name = get_char_url_name(name)
+    url = endpoint + f"/characters/{url_name}/talent-na"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return get_character_icon(name)
+    icon = response.url
+    return icon
+
+def get_talent_skill_icon(name: str):
+    # https://genshin.jmp.blue/characters/ganyu/talent-skill
+    url_name = get_char_url_name(name)
+    url = endpoint + f"/characters/{url_name}/talent-skill"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return get_character_icon(name)
+    icon = response.url
+    return icon
+
+def get_talent_burst_icon(name: str):
+    # https://genshin.jmp.blue/characters/ganyu/talent-burst
+    url_name = get_char_url_name(name)
+    url = endpoint + f"/characters/{url_name}/talent-burst"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return get_character_icon(name)
+    icon = response.url
+    return icon
+
+def get_char_url_name(name: str):
+    for key in CHAR_TO_URL:
+        if name.lower() == key.lower():
+            name = key
+    url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL.keys() else name.lower().replace(" ", "-")
+    return url_name

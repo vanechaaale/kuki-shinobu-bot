@@ -195,8 +195,8 @@ async def _showcase(ctx: CommandContext, uid: int = False):
 )
 async def _notes(ctx: CommandContext):
     await ctx.defer()
-    notes_str = await get_notes(ctx.author.id)
-    await ctx.send(notes_str)
+    notes_embed = await get_notes_embed(ctx.author.id)
+    await ctx.send(embeds=notes_embed)
 
 @client.command(
         name="books",
@@ -241,7 +241,7 @@ async def _books(ctx: CommandContext):
                 "type": 3,
                 "required": True,
             },
-            # select skill, passive, or constellations
+            # select combat skills, passive, or constellations
             {
                 "name": "type",
                 "description": "Type of skill.",
@@ -250,39 +250,44 @@ async def _books(ctx: CommandContext):
                 "choices": [
                     {
                         "name": "Normal Attack",
-                        "value": "na"
+                        "value": "Normal Attack"
                     },
                     {
                         "name": "Elemental Skill",
-                        "value": "e_skill"
+                        "value": "Elemental Skill"
                     },
                     {
                         "name": "Elemental Burst",
-                        "value": "e_burst"
+                        "value": "Elemental Burst"
                     },
                     {
                         "name": "Passive",
-                        "value": "passive"
+                        "value": "Passive"
                     },
                     {
                         "name": "Constellations",
-                        "value": "constellations"
+                        "value": "Constellations"
                     }
                 ]
             }
         ]
 )
 async def _skills(ctx: CommandContext, name: str, type: str):
-    formatted_skills = format_char_info(name, type)
-    await ctx.send(formatted_skills)
+    await ctx.defer()
+    embed = embed_char_info(name, type)
+    await ctx.send(embeds=embed)
 
 @client.command(
         name="daily",
         description="Claim daily rewards from the HoyoLab website."
 )
 async def _daily(ctx: CommandContext):
-    success_msg = await claim_daily_rewards(ctx.author.id)
-    await ctx.send(success_msg)
+    try:
+        await claim_daily_rewards(ctx.author.id)
+        await ctx.send("Daily rewards claimed.")
+    except genshin.AlreadyClaimed:
+        # Catch api error when trying to claim daily rewards again
+        await ctx.send(genshin.AlreadyClaimed.msg)
 
 
 @client.command(

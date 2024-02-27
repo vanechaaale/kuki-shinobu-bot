@@ -11,18 +11,28 @@ def create_embed(
         color : str = None,
         page: int = None,
         total_pages: int = None,
-        title: str = None
+        title: str = None,
         ):
     vision_colors = VISION_TO_COLOR.values()
     embed = interactions.Embed(
         color=color if color else random.choice(list(vision_colors)),
         title=title if title else "Title",
         )
+    text1 = None
+    text2 = None
+    if len(text) > 1024:
+        # split text into 2 fields
+        text1 = text[:1024]
+        text2 = text[1024:]
     embed.add_field(
         name=name,
-        value=text,
+        value=text1 if text1 else text,
         inline=False)
-    embed.set_thumbnail(url=icon)
+    if text2:
+        embed.add_field(
+            name=" ",
+            value=text2,
+            inline=False)
     embed.set_footer(text=f"Page {page} of {total_pages}" if page and total_pages else f"Page 1 of 1")
     return embed
 

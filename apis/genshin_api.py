@@ -1,6 +1,9 @@
 import genshin
+import requests
+from utils.constants import VISION_TO_COLOR
 
 from utils.mongo_db import *
+from utils.utils import create_embed
 
 async def main():
     data = await client.get_genshin_user(601328008)
@@ -121,13 +124,12 @@ async def get_genshin_api_user_summary(discord_id: int, uid: int = False):
     discord_id: int - Discord user id.
 
     Returns:
-    str - Genshin player notes string.
+    embed - Genshin player notes embed.
 
 """
-async def get_notes(discord_id: int):
+async def get_notes_embed(discord_id: int):
     client = await get_genshin_api_client(discord_id)
     user = get_user_from_db(discord_id)
-    print(user)
     uid = user['uid']
     
     notes = await client.get_notes(int(uid))
@@ -152,14 +154,26 @@ async def get_notes(discord_id: int):
     notes_str += f"Realm currency full in {days} days {hours} hours\n"
     notes_str += f"Expeditions finished: {sum(expedition.finished for expedition in notes.expeditions)}\n"
 
-    print(notes_str)
-    return notes_str
+    icon_img = "https://static.wikia.nocookie.net/gensin-impact/images/3/35/Item_Fragile_Resin.png/revision/latest?cb=20210106074218"
+    request = requests.get(icon_img)
+    icon = request.url
+
+    embed = create_embed(
+        title="Real-time Notes:",
+        name=" ",
+        text=notes_str,
+        icon=icon,
+        color=VISION_TO_COLOR["Anemo"],
+    )
+    embed.set_thumbnail(url=icon)
+
+    return embed
 
 
 async def claim_daily_rewards(discord_id: int):
     client = await get_genshin_api_client(discord_id)
     message = await client.claim_daily_reward()
-    return message 
+    return str(message)
 
 async def redeem_code(code: str, discord_id: int):
     client = await get_genshin_api_client(discord_id)

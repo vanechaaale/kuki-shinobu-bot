@@ -18,6 +18,8 @@ CHAR_TO_URL = {
     "Kamisato Ayaka": "ayaka",
     "Kaedehara Kazuha": "kazuha",
     "Kamisato Ayato:": "ayato",
+    "Childe": "tartaglia",
+
 }
 
 """
@@ -30,6 +32,7 @@ URL_TO_CHAR = {
     "ayaka": "Kamisato Ayaka",
     "kazuha": "Kaedehara Kazuha",
     "ayato": "Kamisato Ayato",
+    
 }
 
 """
