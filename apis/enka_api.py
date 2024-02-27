@@ -1,5 +1,5 @@
 from enkapy import Enka
-from mongo_db import get_user_from_db
+from utils.mongo_db import get_user_from_db
 
 client = Enka()
 
@@ -62,7 +62,7 @@ async def main():
     Returns:
         str - Genshin player summary string containing, UID, Nickname, Level, Signature, and Abyss floor
 """
-async def get_user_summary(uid: int, discord_id: int):
+async def get_enka_user_summary(uid: int, discord_id: int):
     # If UID is not provided, look for the author's UID
     await client.load_lang()
     if not uid:

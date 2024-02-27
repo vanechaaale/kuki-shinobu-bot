@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from apis.enka_api import *
 from apis.genshin_api import *
 from apis.genshin_dev import *
+from utils.utils import *
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -19,22 +20,26 @@ client = interactions.Client(intents=intents, token=TOKEN)
         description="Help commands.",
 )
 async def _help(ctx: interactions.CommandContext):
-    await ctx.send("Implement me...")
+    embed = create_embed(ctx.command.name, "Help message.")
+    await ctx.send(embeds=embed)
 
 """
     Display a list of all Kuki Bot commands.
+
+    Sends:
+    str - List of commands in an Embed Message.
 """
 @client.command(
         name="commands",
         description="Show list of commands."
 )
 async def _commands(ctx: interactions.CommandContext):
-    # get all commands
     commands = client._commands
-    commands_str = "Commands:\n"
+    commands_str = "All available commands:\n\n"
     for command in commands:
-        commands_str += f"{command.name}\n"
-    await ctx.send(commands_str)
+        commands_str += f"**/{command.name}:** " + f"{command.description}\n\n"
+    embed = create_embed(ctx.command.name, commands_str)
+    await ctx.send(embeds=embed)
 
 @client.command(
         name="authenticate",
@@ -97,6 +102,12 @@ async def _authenticate(
     Fetch a Genshin player's summary. If no UID is provided, default to author's UID.
 
     Requirements: Cookies & Authentication Tokens
+
+    Parameters:
+    uid: int - Optional Genshin player UID.
+
+    Sends:
+    Embed - 3 Page Embed Message containing Genshin player summary.
 """
 @client.command(
         name="summary",
@@ -112,7 +123,7 @@ async def _authenticate(
 )
 async def _summary(ctx: interactions.CommandContext, uid: int = False):
     await ctx.defer()
-    summary_str = await get_user_summary(uid, ctx.author.id)
+    summary_str = await get_genshin_api_user_summary(ctx.author.id, uid)
     await ctx.send(summary_str)
 
 
@@ -123,6 +134,9 @@ async def _summary(ctx: interactions.CommandContext, uid: int = False):
 
     Parameters:
     uid: int - Optional Genshin player UID. 
+
+    Sends:
+    str - Genshin player character showcase string.
 """
 @client.command(
         name="showcase",
@@ -141,6 +155,13 @@ async def _showcase(ctx: interactions.CommandContext, uid: int = False):
     showcase_str = await get_user_showcase(uid, ctx.author.id)
     await ctx.send(showcase_str)
 
+@client.command(
+        name="books",
+        description="Display Genshin character talent books for the day."
+)
+async def _books(ctx: interactions.CommandContext):
+    books_str = format_daily_talent_books()
+    await ctx.send(books_str)
 
 @client.command(
         name="skills",

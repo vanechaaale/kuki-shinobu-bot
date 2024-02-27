@@ -1,4 +1,8 @@
+import datetime
 import requests
+
+from utils.constants import WEEKDAYS
+
 endpoint = "https://genshin.jmp.blue"
 
 def get_characters():
@@ -127,3 +131,58 @@ def format_e_burst(list: list):
         
 def format_combat_talent_str(skill: dict):
     return f"**{skill['name']}:**\n\n {skill['description']}\n\n"
+
+"""
+    Get the available talent books for the day and the characters that use the books.
+
+    Returns:
+    dict("book": str, dict("availability": list, "characters": list))
+"""
+def get_daily_talent_books():
+    all_talent_books = get_talent_books()
+    daily_books = {}
+    # Today's date (PST)
+    today = WEEKDAYS[datetime.datetime.now().weekday()]
+    for book in all_talent_books:
+        if today in all_talent_books[book]['availability']:
+            daily_books[book] = all_talent_books[book]['characters']
+    return daily_books
+
+"""
+    Get all the talent books and the characters that use the books.
+
+    Returns:
+    dict("book": str, dict("availability": list, "characters": list))
+"""
+def get_talent_books():
+    response = requests.get(endpoint + "/materials/talent-book")
+    result = {}
+    books = response.json()
+    for book in books:
+        result[book] = {
+            'availability': books[book]['availability'],
+            'characters': books[book]['characters']
+            }
+    return result
+
+"""
+    Format the available talent books for the day and the characters that use the books.
+
+    Returns:
+    str - Formatted string of the available talent books and characters.
+"""
+def format_daily_talent_books():
+    books = get_daily_talent_books()
+    today = WEEKDAYS[datetime.datetime.now().weekday()]
+
+    # On Sundays, all are available
+    if today == "Sunday":
+        return "All talent books are available today!"
+    else:
+        formatted_books = f"**{today} Talent Books:**\n\n"
+        for book in books:
+            formatted_books += f"**{book.capitalize()}:**\n"
+            for character in books[book]:
+                formatted_books += f"⦁ {character.capitalize()}\n"
+            formatted_books += "\n"
+        return formatted_books

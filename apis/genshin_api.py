@@ -1,6 +1,6 @@
 import genshin
 
-from mongo_db import *
+from utils.mongo_db import *
 
 async def main():
     data = await client.get_genshin_user(601328008)
@@ -32,6 +32,32 @@ async def get_genshin_api_client(discord_id: int):
     cookies = user['authentication_tokens']
     client = genshin.Client(cookies, game=genshin.Game.GENSHIN)
     return client
+
+"""
+    Get the Genshin player's summary. If no UID is provided, default to author's UID. 
+
+    Parameters:
+    uid: int - Genshin player UID.
+    discord_id: int - Discord user id.
+
+    Returns:
+    str - Genshin player summary string.
+"""
+async def get_genshin_api_user_summary(discord_id: int, uid: int = False):
+    if not uid:
+        # Get author's UID
+        author = get_user_from_db(discord_id)
+        uid = author['uid']
+    client = await get_genshin_api_client(discord_id)
+    user = await client.get_genshin_user(uid)
+    summary_str = f"Nickname: {user.info.nickname}\n"
+    summary_str += f"UID: {uid}\n"
+    summary_str += f"Days Active: {user.stats.days_active}\n"
+    summary_str += f"Achievements: {user.stats.achievements}\n"
+    summary_str += f"Spiral Abyss: {user.stats.spiral_abyss}\n"
+    summary_str += f"Characters Owned: {user.stats.characters}\n"
+
+    return summary_str
 
 """
     Authenticate the HoyoLab cookies and Genshin Account UID for a Discord user.
@@ -93,4 +119,4 @@ async def redeem_code(code: str, discord_id: int):
     client = await get_genshin_api_client(discord_id)
     message = await client.redeem_code(code)
     return message
-        
+
