@@ -1,7 +1,7 @@
 import datetime
 import requests
 
-from utils.constants import WEEKDAYS
+from utils.constants import WEEKDAYS, CHAR_TO_URL
 
 endpoint = "https://genshin.jmp.blue"
 
@@ -11,10 +11,11 @@ def get_characters():
     return characters
 
 def get_character(name: str):
+    url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")
     characters = get_characters()
     for character in characters:
-        if character.lower() == name.lower():
-            response = requests.get(endpoint + f"/characters/{name}")
+        if character.lower() == url_name.lower():
+            response = requests.get(endpoint + f"/characters/{url_name}")
             char = response.json()
             return char
     raise Exception(f"Character {name} not found.")
@@ -186,3 +187,27 @@ def format_daily_talent_books():
                 formatted_books += f"⦁ {character.capitalize()}\n"
             formatted_books += "\n"
         return formatted_books
+    
+"""
+    Get the character's icon.
+
+    Parameters:
+    name: str - Character name.
+
+    Returns:
+    url - Character icon url.
+"""
+def get_character_icon(name: str):
+    url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")
+    response = requests.get(endpoint + f"/characters/{url_name}/icon-big")
+    icon = response.url
+    return icon
+
+"""
+    Get a character's vision.
+
+
+"""
+def get_vision(name: str):
+    character = get_character(name)
+    return character['vision']

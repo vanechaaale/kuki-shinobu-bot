@@ -175,21 +175,23 @@ async def _showcase(ctx: CommandContext, uid: int = False):
     buttons.append(next)
 
     # Send first showcase
-    interaction = await ctx.send(embeds=showcases[0], components=[buttons])
-
-        
+    await ctx.send(embeds=showcases[0], components=[buttons])
+    
+    """
+        Event listener for the showcase buttons.
+    """
     @client.event
     async def on_component(ctx: ComponentContext):
         # get index of current showcase
         for i, embed in enumerate(showcases):
-            if embed.fields[0].name in ctx.message.embeds[0].fields[0].name:
+            if embed.title in ctx.message.embeds[0].title:
                 idx = i
                 break
         if ctx.custom_id == "next_showcase":
             idx = idx + 1 if idx < len(showcases) - 1 else 0
             await ctx.edit(embeds=showcases[idx], components=[buttons])
         elif ctx.custom_id == "prev_showcase":
-            idx -= 1 if idx >= 0 else len(showcases) - 1
+            idx = idx - 1 if idx > 0 else len(showcases) - 1
             await ctx.edit(embeds=showcases[idx], components=[buttons])
         
     

@@ -1,6 +1,8 @@
 from enkapy import Enka
+from apis.genshin_dev import get_character_icon, get_vision
 from utils.mongo_db import get_user_from_db
 from utils.utils import *
+from utils.constants import VISION_TO_COLOR
 
 client = Enka()
 
@@ -123,15 +125,28 @@ async def get_user_showcase(uid: int, discord_id: int):
         #     showcase_str += f'\t{artifact.main_stat.prop}:{artifact.main_stat.value}\n'
         #     for sub_stats in artifact.sub_stats:
         #         showcase_str += f'\t\t{sub_stats.prop}:{sub_stats.value}\n'
+        
+
         showcase_dict = {
             "name": character.name,
+            "vision": get_vision(character.name),
             "description": showcased_char
         }
         showcased_chars.append(showcase_dict)
 
     showcased_embeds = []
     for character in showcased_chars:
-        embed = create_embed(name=character["name"], text=character["description"])
+        page_index = showcased_chars.index(character) + 1
+        icon = get_character_icon(character["name"])
+        vision_color = VISION_TO_COLOR[character["vision"]]
+        embed = create_embed(
+            name=character["name"], 
+            text=character["description"], 
+            icon=icon, 
+            color=vision_color,
+            page=page_index,
+            total_pages=len(showcased_chars)
+            )
         showcased_embeds.append(embed)
 
     return showcased_embeds
