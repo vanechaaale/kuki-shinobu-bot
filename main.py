@@ -10,9 +10,8 @@ from apis.genshin_dev import *
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
-
-client = interactions.Client(token=TOKEN)
-enka_client = Enka()
+intents = interactions.Intents.DEFAULT
+client = interactions.Client(intents=intents, token=TOKEN)
 
 """
     Display a Help message.
@@ -32,7 +31,12 @@ async def _help(ctx: interactions.CommandContext):
         description="Show list of commands."
 )
 async def _commands(ctx: interactions.CommandContext):
-    await ctx.send("Implement me...")
+    # get all commands
+    commands = client._commands
+    commands_str = "Commands:\n"
+    for command in commands:
+        commands_str += f"{command.name}\n"
+    await ctx.send(commands_str)
 
 @client.command(
         name="authenticate",
@@ -113,6 +117,16 @@ async def _summary(ctx: interactions.CommandContext, uid: int = False):
     summary_str = await get_user_summary(uid, ctx.author.id)
     await ctx.send(summary_str)
 
+
+
+"""
+    Fetch a Genshin player's character showcase. If no UID is provided, default to author's UID.
+    
+    Requirements: Cookies & Authentication Tokens
+
+    Parameters:
+    uid: int - Optional Genshin player UID. 
+"""
 @client.command(
         name="showcase",
         description="Show Genshin player's character showcase.",
@@ -130,13 +144,52 @@ async def _showcase(ctx: interactions.CommandContext, uid: int = False):
     showcase_str = await get_user_showcase(uid, ctx.author.id)
     await ctx.send(showcase_str)
 
+
 @client.command(
         name="skills",
-        description="Show Genshin player's character skills.",
+        description="Display Genshin character information.",
+        options=[
+            {
+                "name": "name",
+                "description": "Character name",
+                "type": 3,
+                "required": True,
+            },
+            # select skill, passive, or constellations
+            {
+                "name": "type",
+                "description": "Type of skill.",
+                "type": 3,
+                "required": True,
+                "choices": [
+                    {
+                        "name": "Normal Attack",
+                        "value": "na"
+                    },
+                    {
+                        "name": "Elemental Skill",
+                        "value": "e_skill"
+                    },
+                    {
+                        "name": "Elemental Burst",
+                        "value": "e_burst"
+                    },
+                    {
+                        "name": "Passive",
+                        "value": "passive"
+                    },
+                    {
+                        "name": "Constellations",
+                        "value": "constellations"
+                    }
+                ]
+            }
+        ]
 )
-async def _skills(ctx: interactions.CommandContext, name: str):
-    await ctx.send(get_character_talents(name))
-    
+async def _skills(ctx: interactions.CommandContext, name: str, type: str):
+    formatted_skills = format_char_info(name, type)
+    await ctx.send(formatted_skills)
+
 @client.command(
         name="daily",
         description="Claim daily rewards from the HoyoLab website."
@@ -144,6 +197,7 @@ async def _skills(ctx: interactions.CommandContext, name: str):
 async def _daily(ctx: interactions.CommandContext):
     success_msg = await claim_daily_rewards(ctx.author.id)
     await ctx.send(success_msg)
+
 
 @client.command(
         name="redeem",
@@ -164,6 +218,7 @@ async def _redeem(ctx: interactions.CommandContext, code: str):
 
 @client.event
 async def on_ready():
+    # sync commands
     pass
 
 @client.event
