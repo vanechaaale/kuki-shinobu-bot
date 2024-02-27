@@ -1,8 +1,6 @@
-import asyncio
 import os
 import interactions
 
-from enkapy import Enka
 from dotenv import load_dotenv
 from apis.enka_api import *
 from apis.genshin_api import *
@@ -116,7 +114,6 @@ async def _summary(ctx: interactions.CommandContext, uid: int = False):
     await ctx.defer()
     summary_str = await get_user_summary(uid, ctx.author.id)
     await ctx.send(summary_str)
-
 
 
 """

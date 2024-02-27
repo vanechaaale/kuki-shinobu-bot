@@ -1,5 +1,3 @@
-import asyncio
-import json
 import genshin
 
 from mongo_db import *

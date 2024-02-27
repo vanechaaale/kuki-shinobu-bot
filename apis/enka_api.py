@@ -1,5 +1,3 @@
-import asyncio
-
 from enkapy import Enka
 from mongo_db import get_user_from_db
 
