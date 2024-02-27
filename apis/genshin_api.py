@@ -34,32 +34,6 @@ async def get_genshin_api_client(discord_id: int):
     return client
 
 """
-    Get the Genshin player's summary. If no UID is provided, default to author's UID. 
-
-    Parameters:
-    uid: int - Genshin player UID.
-    discord_id: int - Discord user id.
-
-    Returns:
-    str - Genshin player summary string.
-"""
-async def get_genshin_api_user_summary(discord_id: int, uid: int = False):
-    if not uid:
-        # Get author's UID
-        author = get_user_from_db(discord_id)
-        uid = author['uid']
-    client = await get_genshin_api_client(discord_id)
-    user = await client.get_genshin_user(uid)
-    summary_str = f"Nickname: {user.info.nickname}\n"
-    summary_str += f"UID: {uid}\n"
-    summary_str += f"Days Active: {user.stats.days_active}\n"
-    summary_str += f"Achievements: {user.stats.achievements}\n"
-    summary_str += f"Spiral Abyss: {user.stats.spiral_abyss}\n"
-    summary_str += f"Characters Owned: {user.stats.characters}\n"
-
-    return summary_str
-
-"""
     Authenticate the HoyoLab cookies and Genshin Account UID for a Discord user.
 
     Parameters:
@@ -109,6 +83,78 @@ async def authenticate(discord_id: int, uid: int, ltuid: int, ltmid: str, ltoken
             update_user(discord_id, initial_user)
         return "Error during HoyoLab authentication. Please check your credentials and try again."
     return "Successfully authenticated HoyoLab cookies/Genshin Account info."
+
+"""
+    Get the Genshin player's summary. If no UID is provided, default to author's UID. 
+
+    Parameters:
+    uid: int - Genshin player UID.
+    discord_id: int - Discord user id.
+
+    Returns:
+    str - Genshin player summary string.
+"""
+async def get_genshin_api_user_summary(discord_id: int, uid: int = False):
+    if not uid:
+        # Get author's UID
+        author = get_user_from_db(discord_id)
+        uid = author['uid']
+    client = await get_genshin_api_client(discord_id)
+    user = await client.get_genshin_user(uid)
+    summary_str = f"Nickname: {user.info.nickname}\n"
+    summary_str += f"UID: {uid}\n"
+    summary_str += f"Days Active: {user.stats.days_active}\n"
+    summary_str += f"Achievements: {user.stats.achievements}\n"
+    summary_str += f"Spiral Abyss: {user.stats.spiral_abyss}\n"
+    summary_str += f"Characters Owned: {user.stats.characters}\n"
+
+    return summary_str
+
+"""
+    Get a Genshin player's resin, comissions, realm currency, and expeditions info.
+
+    Errors:
+    [10102] Cannot view real-time notes of other users.
+        - If the uid from the database doesn't match the hoyolab uid/cookies, this error will be raised.
+
+    Parameters:
+    discord_id: int - Discord user id.
+
+    Returns:
+    str - Genshin player notes string.
+
+"""
+async def get_notes(discord_id: int):
+    client = await get_genshin_api_client(discord_id)
+    user = get_user_from_db(discord_id)
+    print(user)
+    uid = user['uid']
+    
+    notes = await client.get_notes(int(uid))
+
+    # datetime.timedelta object
+    time = notes.remaining_resin_recovery_time
+    # Convert seconds to hours and minutes
+    hours = time.total_seconds() // 3600
+    minutes = (time.total_seconds() % 3600) // 60
+
+    # datetime.timedelta object
+    time = notes.remaining_realm_currency_recovery_time
+    # Convert to days and hours
+    days = time.days
+    hours = time.seconds // 3600
+
+    notes_str = ""
+    notes_str += f"Current resin: {notes.current_resin}/{notes.max_resin}\n"
+    notes_str += f"Resin full in {hours:.0f} hours {minutes:.0f} minutes\n"
+    notes_str += f"Commissions left: {notes.completed_commissions}/{notes.max_commissions}\n"
+    notes_str += f"Current realm currency: {notes.current_realm_currency}/{notes.max_realm_currency}\n"
+    notes_str += f"Realm currency full in {days} days {hours} hours\n"
+    notes_str += f"Expeditions finished: {sum(expedition.finished for expedition in notes.expeditions)}\n"
+
+    print(notes_str)
+    return notes_str
+
 
 async def claim_daily_rewards(discord_id: int):
     client = await get_genshin_api_client(discord_id)

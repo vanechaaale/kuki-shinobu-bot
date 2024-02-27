@@ -1,5 +1,6 @@
 from enkapy import Enka
 from utils.mongo_db import get_user_from_db
+from utils.utils import *
 
 client = Enka()
 
@@ -91,30 +92,46 @@ async def get_user_showcase(uid: int, discord_id: int):
         uid = user['uid']
 
     user = await client.fetch_user(uid)
-    showcase_str = f"UID: {uid}\n"
+    # showcase_str = f"UID: {uid}\n"
+
+    showcased_chars = []
     for character in user.characters:
-        showcase_str += f"Name: {character.name}\n"
-        showcase_str += f"Level: {character.level}\n"
-        # showcase_str += 'Weapon:\n'
-        # weapon = character.weapon
-        # showcase_str += f'\tName: {weapon.name}\n'
-        # showcase_str += f'\tLevel: {weapon.level}\n'
-        # showcase_str += f'\tRefine: {weapon.refine}\n'
-        # showcase_str += f'\tStar level: {weapon.rank}\n'
+        showcased_char = ""
+        showcased_char += f"Level: {character.level}\n"
+        weapon = character.weapon
+        showcased_char += f'Weapon:{weapon.name} R{weapon.refine} Lv.{weapon.level}\n'
     
-        showcase_str += 'Constellation: ' + str(len(character.internal_constellations)) + '\n'
-        showcase_str += 'Combat Talents:'
+        showcased_char += 'Constellation: ' + str(len(character.internal_constellations)) + '\n'
+        showcased_char += 'Combat Talents:\n'
+
+        skill_details = {}
         for skill in character.skills:
             if skill.type == 0:
-                showcase_str += f'{skill.level}\ '
+                skill_details['na'] = skill.level
             elif skill.type == 1:
-                showcase_str += f'{skill.level}\ '
+                skill_details['skill'] = skill.level
             elif skill.type == 2:
-                showcase_str += f'{skill.level}\n'
+                skill_details['burst'] = skill.level
+
+        showcased_char += f'⦁\tNormal Attack: {skill_details["na"]}\n'
+        showcased_char += f'⦁\tElemental skill: {skill_details["skill"]}\n'
+        showcased_char += f'⦁\tElemental burst: {skill_details["burst"]}\n'
+
         # showcase_str += 'Artifacts:\n'
         # for artifact in character.artifacts:
         #     showcase_str += f'\t{artifact.set_name} {artifact.name}:\n'
         #     showcase_str += f'\t{artifact.main_stat.prop}:{artifact.main_stat.value}\n'
         #     for sub_stats in artifact.sub_stats:
         #         showcase_str += f'\t\t{sub_stats.prop}:{sub_stats.value}\n'
-    return showcase_str
+        showcase_dict = {
+            "name": character.name,
+            "description": showcased_char
+        }
+        showcased_chars.append(showcase_dict)
+
+    showcased_embeds = []
+    for character in showcased_chars:
+        embed = create_embed(name=character["name"], text=character["description"])
+        showcased_embeds.append(embed)
+
+    return showcased_embeds

@@ -6,11 +6,12 @@ from apis.enka_api import *
 from apis.genshin_api import *
 from apis.genshin_dev import *
 from utils.utils import *
+from interactions import Button, ButtonStyle, Client, CommandContext, Component, ComponentContext, Intents
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
-intents = interactions.Intents.DEFAULT
-client = interactions.Client(intents=intents, token=TOKEN)
+intents = Intents.DEFAULT
+client = Client(intents=intents, token=TOKEN)
 
 """
     Display a Help message.
@@ -19,7 +20,7 @@ client = interactions.Client(intents=intents, token=TOKEN)
         name="help",
         description="Help commands.",
 )
-async def _help(ctx: interactions.CommandContext):
+async def _help(ctx: CommandContext):
     embed = create_embed(ctx.command.name, "Help message.")
     await ctx.send(embeds=embed)
 
@@ -33,7 +34,7 @@ async def _help(ctx: interactions.CommandContext):
         name="commands",
         description="Show list of commands."
 )
-async def _commands(ctx: interactions.CommandContext):
+async def _commands(ctx: CommandContext):
     commands = client._commands
     commands_str = "All available commands:\n\n"
     for command in commands:
@@ -79,7 +80,7 @@ async def _commands(ctx: interactions.CommandContext):
 
 )
 async def _authenticate(
-    ctx: interactions.CommandContext, 
+    ctx: CommandContext, 
     ltuid: int, 
     ltmid: str, 
     ltoken: str,
@@ -121,7 +122,7 @@ async def _authenticate(
             }
         ]
 )
-async def _summary(ctx: interactions.CommandContext, uid: int = False):
+async def _summary(ctx: CommandContext, uid: int = False):
     await ctx.defer()
     summary_str = await get_genshin_api_user_summary(ctx.author.id, uid)
     await ctx.send(summary_str)
@@ -150,16 +151,73 @@ async def _summary(ctx: interactions.CommandContext, uid: int = False):
             }
         ]
 )
-async def _showcase(ctx: interactions.CommandContext, uid: int = False):
+async def _showcase(ctx: CommandContext, uid: int = False):
     await ctx.defer()
-    showcase_str = await get_user_showcase(uid, ctx.author.id)
-    await ctx.send(showcase_str)
+    # get list of showcased character's embeds
+    showcases = await get_user_showcase(uid, ctx.author.id)
+    
+    buttons = []
+
+    # I think the emojis are kinda ugly with the button ngl
+    prev = Button(
+        style=ButtonStyle.SECONDARY,
+        label="prev",
+        custom_id="prev_showcase",
+        # emoji=interactions.Emoji(name="⬅️")
+    )
+    next = Button(
+        style= ButtonStyle.PRIMARY,
+        label="next",
+        custom_id="next_showcase",
+        # emoji=interactions.Emoji(name="➡️")
+    )
+    buttons.append(prev)
+    buttons.append(next)
+
+    # Send first showcase
+    interaction = await ctx.send(embeds=showcases[0], components=[buttons])
+
+        
+    @client.event
+    async def on_component(ctx: ComponentContext):
+        # get index of current showcase
+        for i, embed in enumerate(showcases):
+            if embed.fields[0].name in ctx.message.embeds[0].fields[0].name:
+                idx = i
+                break
+        if ctx.custom_id == "next_showcase":
+            idx = idx + 1 if idx < len(showcases) - 1 else 0
+            await ctx.edit(embeds=showcases[idx], components=[buttons])
+        elif ctx.custom_id == "prev_showcase":
+            idx -= 1 if idx >= 0 else len(showcases) - 1
+            await ctx.edit(embeds=showcases[idx], components=[buttons])
+        
+    
+"""
+    Fetch the author's notes (realm currency, resin, comissions, and expeditions). 
+
+    Requirements: Cookies & Authentication Tokens
+
+    Errors: 
+    [10102] Cannot view real-time notes of other users.
+
+    Sends:
+    Embed - Genshin player notes in an Embed message.
+"""
+@client.command(
+        name="notes",
+        description="Show Genshin player's notes."
+)
+async def _notes(ctx: CommandContext):
+    await ctx.defer()
+    notes_str = await get_notes(ctx.author.id)
+    await ctx.send(notes_str)
 
 @client.command(
         name="books",
         description="Display Genshin character talent books for the day."
 )
-async def _books(ctx: interactions.CommandContext):
+async def _books(ctx: CommandContext):
     books_str = format_daily_talent_books()
     await ctx.send(books_str)
 
@@ -204,7 +262,7 @@ async def _books(ctx: interactions.CommandContext):
             }
         ]
 )
-async def _skills(ctx: interactions.CommandContext, name: str, type: str):
+async def _skills(ctx: CommandContext, name: str, type: str):
     formatted_skills = format_char_info(name, type)
     await ctx.send(formatted_skills)
 
@@ -212,7 +270,7 @@ async def _skills(ctx: interactions.CommandContext, name: str, type: str):
         name="daily",
         description="Claim daily rewards from the HoyoLab website."
 )
-async def _daily(ctx: interactions.CommandContext):
+async def _daily(ctx: CommandContext):
     success_msg = await claim_daily_rewards(ctx.author.id)
     await ctx.send(success_msg)
 
@@ -229,7 +287,7 @@ async def _daily(ctx: interactions.CommandContext):
             }
         ]
 )
-async def _redeem(ctx: interactions.CommandContext, code: str):
+async def _redeem(ctx: CommandContext, code: str):
     await ctx.defer()
     success_msg = await redeem_code(code, ctx.author.id)
     await ctx.send(success_msg)
@@ -242,5 +300,5 @@ async def on_ready():
 @client.event
 async def on_command_error(ctx, error):
     await ctx.send(f"Error: {str(error)}")
-    
+
 client.start()
