@@ -47,5 +47,4 @@ VISION_TO_COLOR = {
 }
 
 """
-    Map of character names to their respective vision.
 """

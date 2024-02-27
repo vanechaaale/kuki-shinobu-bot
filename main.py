@@ -1,12 +1,11 @@
 import os
-import interactions
 
 from dotenv import load_dotenv
 from apis.enka_api import *
 from apis.genshin_api import *
 from apis.genshin_dev import *
 from utils.utils import *
-from interactions import Button, ButtonStyle, Client, CommandContext, Component, ComponentContext, Intents
+from interactions import Client, CommandContext, ComponentContext, Intents, LibraryException
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -156,23 +155,7 @@ async def _showcase(ctx: CommandContext, uid: int = False):
     # get list of showcased character's embeds
     showcases = await get_user_showcase(uid, ctx.author.id)
     
-    buttons = []
-
-    # I think the emojis are kinda ugly with the button ngl
-    prev = Button(
-        style=ButtonStyle.SECONDARY,
-        label="prev",
-        custom_id="prev_showcase",
-        # emoji=interactions.Emoji(name="⬅️")
-    )
-    next = Button(
-        style= ButtonStyle.PRIMARY,
-        label="next",
-        custom_id="next_showcase",
-        # emoji=interactions.Emoji(name="➡️")
-    )
-    buttons.append(prev)
-    buttons.append(next)
+    buttons = create_page_buttons()
 
     # Send first showcase
     await ctx.send(embeds=showcases[0], components=[buttons])
@@ -187,10 +170,10 @@ async def _showcase(ctx: CommandContext, uid: int = False):
             if embed.title in ctx.message.embeds[0].title:
                 idx = i
                 break
-        if ctx.custom_id == "next_showcase":
+        if ctx.custom_id == "next_page":
             idx = idx + 1 if idx < len(showcases) - 1 else 0
             await ctx.edit(embeds=showcases[idx], components=[buttons])
-        elif ctx.custom_id == "prev_showcase":
+        elif ctx.custom_id == "prev_page":
             idx = idx - 1 if idx > 0 else len(showcases) - 1
             await ctx.edit(embeds=showcases[idx], components=[buttons])
         
@@ -220,8 +203,33 @@ async def _notes(ctx: CommandContext):
         description="Display Genshin character talent books for the day."
 )
 async def _books(ctx: CommandContext):
-    books_str = format_daily_talent_books()
-    await ctx.send(books_str)
+    # List of available talent books as embeds
+    embeds = get_daily_talent_books_embeds()
+    buttons = create_page_buttons()
+    await ctx.defer()
+     # Send first page
+    await ctx.send(embeds=embeds[0], components=[buttons])
+    
+    """
+        Event listener for the talent book buttons.
+    """
+    @client.event
+    async def on_component(ctx: ComponentContext):
+        try:
+            # get index of current page
+            for i, embed in enumerate(embeds):
+                if embed.fields[0].name in ctx.message.embeds[0].fields[0].name:
+                    idx = i
+                    break
+            if ctx.custom_id == "next_page":
+                idx = idx + 1 if idx < len(embeds) - 1 else 0
+                await ctx.edit(embeds=embeds[idx], components=[buttons])
+            elif ctx.custom_id == "prev_page":
+                idx = idx - 1 if idx > 0 else len(embeds) - 1
+                await ctx.edit(embeds=embeds[idx], components=[buttons])
+        except LibraryException as e:
+            print(e)
+            pass
 
 @client.command(
         name="skills",

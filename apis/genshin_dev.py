@@ -2,6 +2,7 @@ import datetime
 import requests
 
 from utils.constants import WEEKDAYS, CHAR_TO_URL
+from utils.utils import create_embed, create_page_buttons
 
 endpoint = "https://genshin.jmp.blue"
 
@@ -167,27 +168,31 @@ def get_talent_books():
     return result
 
 """
-    Format the available talent books for the day and the characters that use the books.
+    Return a list of embeds for the available talent books for the day.
 
     Returns:
-    str - Formatted string of the available talent books and characters.
+    list of Embeds
 """
-def format_daily_talent_books():
+def get_daily_talent_books_embeds():
     books = get_daily_talent_books()
     today = WEEKDAYS[datetime.datetime.now().weekday()]
+    embeds = []
+    for book in books:
+        characters = books[book]
+        characters_str = ""
+        for character in characters:
+            characters_str += f"⦁ {character.capitalize()}\n"
+        embed = create_embed(
+            name=book.capitalize(),
+            title=f"Available Talent Books for {today}:",
+            icon=get_guide_icon(book),
+            text=characters_str,
+            page=list(books.keys()).index(book) + 1,
+            total_pages=len(books)
+        )
+        embeds.append(embed)
+    return embeds
 
-    # On Sundays, all are available
-    if today == "Sunday":
-        return "All talent books are available today!"
-    else:
-        formatted_books = f"**{today} Talent Books:**\n\n"
-        for book in books:
-            formatted_books += f"**{book.capitalize()}:**\n"
-            for character in books[book]:
-                formatted_books += f"⦁ {character.capitalize()}\n"
-            formatted_books += "\n"
-        return formatted_books
-    
 """
     Get the character's icon.
 
@@ -206,8 +211,28 @@ def get_character_icon(name: str):
 """
     Get a character's vision.
 
+    Parameters:
+    name: str - Character name.
 
+    Returns:
+    str - Character vision.
 """
 def get_vision(name: str):
     character = get_character(name)
     return character['vision']
+
+"""
+    Get the talent book icon.
+
+    Parameters:
+    name: str - Talent book name.
+
+    Returns:
+    url - Talent book icon url.
+"""
+def get_guide_icon(name: str):
+    # https://genshin.jmp.blue/materials/talent-book/guide-to-admonition
+    url = endpoint + f"/materials/talent-book/guide-to-{name.lower()}"
+    response = requests.get(url)
+    icon = response.url
+    return icon
