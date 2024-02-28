@@ -74,3 +74,15 @@ PROP_TO_STAT = {
     "FIGHT_PROP_FIRE_ADD_HURT": "Pyro DMG Bonus",
     "FIGHT_PROP_ELEC_ADD_HURT": "Electro DMG Bonus",
 }
+
+
+"""
+    Map of Emoji Names to their respective ids.
+"""
+EMOJIS_TO_ID = {
+    "adventurer_handbook": "<:adventurer_handbook:1212431650546393170>",
+    "original_resin": "<:original_resin:1212431485034958878>",
+    "realm_currency": "<:realm_currency:1212431054888112198>",
+    "ore": "<:ore:1212464736382230670>",
+    "daily_commission": "<:daily_commission:1212464737267490876>",
+}

@@ -1,6 +1,6 @@
 import genshin
 import requests
-from utils.constants import VISION_TO_COLOR
+from utils.constants import VISION_TO_COLOR, EMOJIS_TO_ID
 
 from utils.mongo_db import *
 from utils.utils import create_embed
@@ -122,6 +122,7 @@ async def get_genshin_api_user_summary(discord_id: int, uid: int = False):
 
     Parameters:
     discord_id: int - Discord user id.
+    emojis: list - List of emoji ids to use for the embed.
 
     Returns:
     embed - Genshin player notes embed.
@@ -133,38 +134,56 @@ async def get_notes_embed(discord_id: int):
     uid = user['uid']
     
     notes = await client.get_notes(int(uid))
+    user = await client.get_genshin_user(int(uid))
+    username = user.info.nickname
+
+    resin = EMOJIS_TO_ID["original_resin"]
+    realm_currency = EMOJIS_TO_ID["realm_currency"]
+    expedition = EMOJIS_TO_ID["ore"]
+    daily_commission = EMOJIS_TO_ID["daily_commission"]
+
 
     # datetime.timedelta object
-    time = notes.remaining_resin_recovery_time
+    res_time = notes.remaining_resin_recovery_time
     # Convert seconds to hours and minutes
-    hours = time.total_seconds() // 3600
-    minutes = (time.total_seconds() % 3600) // 60
+    res_hours = res_time.total_seconds() // 3600
+    res_minutes = (res_time.total_seconds() % 3600) // 60
 
     # datetime.timedelta object
-    time = notes.remaining_realm_currency_recovery_time
+    realm_time = notes.remaining_realm_currency_recovery_time
     # Convert to days and hours
-    days = time.days
-    hours = time.seconds // 3600
+    realm_days = realm_time.days
+    realm_hours = realm_time.seconds // 3600
 
-    notes_str = ""
-    notes_str += f"Current resin: {notes.current_resin}/{notes.max_resin}\n"
-    notes_str += f"Resin full in {hours:.0f} hours {minutes:.0f} minutes\n"
-    notes_str += f"Commissions left: {notes.completed_commissions}/{notes.max_commissions}\n"
-    notes_str += f"Current realm currency: {notes.current_realm_currency}/{notes.max_realm_currency}\n"
-    notes_str += f"Realm currency full in {days} days {hours} hours\n"
-    notes_str += f"Expeditions finished: {sum(expedition.finished for expedition in notes.expeditions)}\n"
+    resin_str = []
+    resin_str.append(f"{notes.current_resin}/{notes.max_resin} {resin}\n ")
+    if (notes.current_resin < notes.max_resin):
+        resin_str.append(f"Full in {res_hours:.0f} hours {res_minutes:.0f} minutes")
+    resin_str = "".join(resin_str)
 
-    icon_img = "https://static.wikia.nocookie.net/gensin-impact/images/3/35/Item_Fragile_Resin.png/revision/latest?cb=20210106074218"
+    realm_str = []
+    realm_str.append(f"{notes.current_realm_currency}/{notes.max_realm_currency} {realm_currency}\n ")
+    if (notes.current_realm_currency < notes.max_realm_currency):
+        realm_str.append(f"Full in {realm_days} day(s) {realm_hours} hour(s)\n")
+    realm_str = "".join(realm_str)
+
+    comm_exp_str = []
+    comm_exp_str.append(f"{notes.completed_commissions}/{notes.max_commissions} Commissions Completed {daily_commission}\n")
+    comm_exp_str.append(f"{sum(expedition.finished for expedition in notes.expeditions)}/{len(notes.expeditions)} Expeditions Complete {expedition}\n")
+    comm_exp_str = "".join(comm_exp_str)
+
+    icon_img = "https://static.wikia.nocookie.net/gensin-impact/images/7/75/Icon_Adventurer_Handbook.png/revision/latest?cb=20230427093923"
     request = requests.get(icon_img)
     icon = request.url
 
     embed = create_embed(
-        title="Real-time Notes:",
-        name=" ",
-        text=notes_str,
-        icon=icon,
+        title=f"{username}'s Notes",
+        name="Commissions & Expeditions",
+        text=comm_exp_str,
         color=VISION_TO_COLOR["Anemo"],
     )
+    embed.add_field(name="Resin", value=resin_str, inline=True)
+    embed.add_field(name="Realm Currency", value=realm_str, inline=True)
     embed.set_thumbnail(url=icon)
 
     return embed

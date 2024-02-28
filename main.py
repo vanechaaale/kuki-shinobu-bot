@@ -6,6 +6,7 @@ from apis.genshin_api import *
 from apis.genshin_dev import *
 from utils.utils import *
 from interactions import Client, CommandContext, ComponentContext, Intents, LibraryException
+from utils.constants import EMOJIS_TO_ID
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -199,6 +200,7 @@ async def _showcase(ctx: CommandContext, uid: int = False):
 )
 async def _notes(ctx: CommandContext):
     await ctx.defer()
+    # Get Emojis ids for the embed
     notes_embed = await get_notes_embed(ctx.author.id)
     await ctx.send(embeds=notes_embed)
 
