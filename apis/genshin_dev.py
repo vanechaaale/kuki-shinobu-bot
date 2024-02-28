@@ -1,7 +1,7 @@
 import datetime
 import requests
 
-from utils.constants import WEEKDAYS, CHAR_TO_URL, VISION_TO_COLOR
+from utils.constants import WEEKDAYS, CHAR_TO_URL, VISION_TO_COLOR, CharacterSkills
 from utils.utils import create_embed
 
 endpoint = "https://genshin.jmp.blue"
@@ -76,38 +76,40 @@ def embed_char_info(name: str, type: str):
     character = get_character(name)
 
     char_name = character["name"]
-    skills = ["Normal Attack", "Elemental Skill", "Elemental Burst", "Passive Talents", "Constellations"]
+    skills = [skill.value for skill in CharacterSkills]
     list = []
     result_str = ""
     embed_icon = ""
-    show_more = False
     if type not in skills:
         return f"Invalid skill type. Please choose from {skills}"
     else:
-        if type == "Normal Attack":
+        if type == CharacterSkills.NORMAL_ATTACK.value:
             list = get_char_combat_talents(name)
             result_str = format_normal_attack(list)
             embed_icon = get_talent_na_icon(name)
-        elif type == "Elemental Skill":
+        elif type == CharacterSkills.ELEMENTAL_SKILL.value:
             list = get_char_combat_talents(name)
             result_str = format_e_skill(list)
             embed_icon = get_talent_skill_icon(name)
-        elif type == "Elemental Burst":
+        elif type == CharacterSkills.ELEMENTAL_BURST.value:
             list = get_char_combat_talents(name)
             result_str = format_e_burst(list)
             embed_icon = get_talent_burst_icon(name)
-        elif type == "Passive Talents":
+        elif type == CharacterSkills.PASSIVE_TALENTS.value:
             return create_passive_talent_embed(name)
-        elif type == "Constellations":
+        elif type == CharacterSkills.CONSTELLATIONS.value:
             return create_constellations_embed(name)
 
-    details, more = result_str.split('.')[0], result_str.split('.')[1:]
+    # If it's too long, redirect link to wiki
+    if len(result_str) > 800:
+        skill_name = list[0]['name']
+        result_str = f"{result_str[:770]}... [Read More](https://genshin-impact.fandom.com/wiki/{skill_name.replace(' ', '_')})\n\n"
 
     embed = create_embed(
         name=" ",
         title=f"{char_name}: {type}",
         icon=embed_icon,
-        text=f'{result_str}' if show_more else f'{details}.',
+        text=result_str,
         color=VISION_TO_COLOR[get_vision(name)],
         page=1,
         total_pages=1
@@ -129,7 +131,7 @@ def create_passive_talent_embed(name: str):
 
     embed = create_embed(
         name=" ",
-        title=f"{char_name}: Passive Talents",
+        title=f"{char_name}: {CharacterSkills.PASSIVE_TALENTS.value}",
         # icon=embed_icon,
         text=passive_talents_list[0],
         color=VISION_TO_COLOR[get_vision(name)],
@@ -157,7 +159,7 @@ def create_constellations_embed(name: str):
 
     embed = create_embed(
         name=" ",
-        title=f"{char_name}: Constellations",
+        title=f"{char_name}: {CharacterSkills.CONSTELLATIONS.value}",
         # icon=embed_icon,
         text=cons_list[0],
         color=VISION_TO_COLOR[get_vision(name)],
@@ -194,17 +196,17 @@ def format_constellations(list: list):
 
 def format_normal_attack(list: list):
     for skill in list:
-        if skill['unlock'] == "Normal Attack":
+        if skill['unlock'] == CharacterSkills.NORMAL_ATTACK.value:
             return format_combat_talent_str(skill)
         
 def format_e_skill(list: list):
     for skill in list:
-        if skill['unlock'] == "Elemental Skill":
+        if skill['unlock'] == CharacterSkills.ELEMENTAL_SKILL.value:
             return format_combat_talent_str(skill)
 
 def format_e_burst(list: list):
     for skill in list:
-        if skill['unlock'] == "Elemental Burst":
+        if skill['unlock'] == CharacterSkills.ELEMENTAL_BURST.value:
             return format_combat_talent_str(skill)
         
 def format_combat_talent_str(skill: dict):
@@ -309,7 +311,7 @@ def get_character_constellation(name: str):
     url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")
     response = requests.get(endpoint + f"/characters/{url_name}/constellation")
     if response.status_code != 200:
-        return ""
+        return get_character_icon(name)
     icon = response.url
     return icon
 

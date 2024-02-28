@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 WEEKDAYS = {
     1: 'Monday',
     2: 'Tuesday',
@@ -86,3 +89,14 @@ EMOJIS_TO_ID = {
     "ore": "<:ore:1212464736382230670>",
     "daily_commission": "<:daily_commission:1212464737267490876>",
 }
+
+"""
+    Enum of character skills.
+"""
+class CharacterSkills(Enum):
+    NORMAL_ATTACK = "Normal Attack"
+    ELEMENTAL_SKILL = "Elemental Skill"
+    ELEMENTAL_BURST = "Elemental Burst"
+    PASSIVE_TALENTS = "Passive Talents"
+    CONSTELLATIONS = "Constellations"
+

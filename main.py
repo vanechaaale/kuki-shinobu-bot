@@ -6,7 +6,7 @@ from apis.genshin_api import *
 from apis.genshin_dev import *
 from utils.utils import *
 from interactions import Client, CommandContext, ComponentContext, Intents, LibraryException
-from utils.constants import EMOJIS_TO_ID
+from utils.constants import EMOJIS_TO_ID, CharacterSkills
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -255,34 +255,40 @@ async def _books(ctx: CommandContext):
                 "required": True,
                 "choices": [
                     {
-                        "name": "Normal Attack",
-                        "value": "Normal Attack"
+                        "name": CharacterSkills.NORMAL_ATTACK.value,
+                        "value": CharacterSkills.NORMAL_ATTACK.value
                     },
                     {
-                        "name": "Elemental Skill",
-                        "value": "Elemental Skill"
+                        "name": CharacterSkills.ELEMENTAL_SKILL.value,
+                        "value": CharacterSkills.ELEMENTAL_SKILL.value
                     },
                     {
-                        "name": "Elemental Burst",
-                        "value": "Elemental Burst"
+                        "name": CharacterSkills.ELEMENTAL_BURST.value,
+                        "value": CharacterSkills.ELEMENTAL_BURST.value
                     },
                     {
-                        "name": "Passive Talents",
-                        "value": "Passive Talents"
+                        "name": CharacterSkills.PASSIVE_TALENTS.value,
+                        "value": CharacterSkills.PASSIVE_TALENTS.value
                     },
                     {
-                        "name": "Constellations",
-                        "value": "Constellations"
+                        "name": CharacterSkills.CONSTELLATIONS.value,
+                        "value": CharacterSkills.CONSTELLATIONS.value
                     }
                 ]
             }
         ]
 )
 async def _skills(ctx: CommandContext, name: str, type: str):
-    button = create_show_details_button()
+    components=[]
+    # Normal Attack, Elemental Skill, Elemental Burst have a Show Details button
+    if (type == CharacterSkills.NORMAL_ATTACK.value or
+        type == CharacterSkills.ELEMENTAL_SKILL.value or
+        type == CharacterSkills.ELEMENTAL_BURST.value):
+        button = create_show_details_button()
+        components.append(button)
     await ctx.defer()
     embed = embed_char_info(name, type)
-    await ctx.send(embeds=embed) #, components=[button])
+    await ctx.send(embeds=embed, components=components)
 
     """
         Event listener for the Show Details button on Character skills message.
@@ -291,10 +297,10 @@ async def _skills(ctx: CommandContext, name: str, type: str):
     async def on_component(ctx: ComponentContext):
         try:
             if ctx.custom_id == "show_details":
-                # get character's combat talents, passive talents, or constellations info
-                embed = embed_char_info(name, type)
-                await ctx.edit(embeds=embed, components=[button])
-            
+                # Show more Character Combat Skill details
+                #await ctx.edit(embeds=embed, components=[button])
+                # TODO: implement this
+                pass
         except Exception:
             print("Something went wrong")
             pass
