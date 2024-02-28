@@ -137,11 +137,11 @@ async def get_user_showcase(uid: int, discord_id: int):
 
 def get_char_combat_data(character):
     showcased_char_combat = []
+    showcased_char_combat.append(f'C {str(len(character.internal_constellations))} ')
     showcased_char_combat.append(f"Lv. {character.level}\n")
     weapon = character.weapon
     showcased_char_combat.append(f'Lv.{weapon.level} R{weapon.refine} {weapon.name}\n')
 
-    showcased_char_combat.append('Constellation: ' + str(len(character.internal_constellations)) + '\n')
     showcased_char_combat.append('Combat Talents:\n')
 
     skill_details = {}
