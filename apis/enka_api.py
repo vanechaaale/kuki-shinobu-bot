@@ -126,7 +126,7 @@ async def get_user_showcase(uid: int, discord_id: int):
             total_pages=len(showcased_chars_combat)
             )
         embed.add_field(
-            name=f"{character['set_bonus']}",
+            name=f"{character['set_bonus']}\n",
             value='\n\n'.join(character["artifacts"]),
             inline=False
         )
@@ -139,7 +139,7 @@ def get_char_combat_data(character):
     showcased_char_combat = []
     showcased_char_combat.append(f"Lv. {character.level}\n")
     weapon = character.weapon
-    showcased_char_combat.append(f'Weapon:{weapon.name} R{weapon.refine} Lv.{weapon.level}\n')
+    showcased_char_combat.append(f'Lv.{weapon.level} R{weapon.refine} {weapon.name}\n')
 
     showcased_char_combat.append('Constellation: ' + str(len(character.internal_constellations)) + '\n')
     showcased_char_combat.append('Combat Talents:\n')
@@ -160,32 +160,29 @@ def get_char_combat_data(character):
     return ''.join(showcased_char_combat)
 
 def get_char_artifact_data(character):
-    set_bonus = None
     showcased_char_artifacts = []
+    set_bonus = ""
+    occurrence_dict = {}
     for artifact in character.artifacts:
         showcased_char_artifact = []
         artifact_icon = get_artifact_icon(artifact.set_name)
-
-        # Get the number of artifacts from a set the char is holding (2 pc / 2 pc vs 4 pc)
-        occurrence_dict = {}
-
-        if artifact.set_name not in occurrence_dict:
-            occurrence_dict[artifact.set_name] = 1
-        else:
-            occurrence_dict[artifact.set_name] += 1
         
-        for set_name, occurrence in occurrence_dict.items():
-            if 1 < occurrence < 4 :
-                set_bonus += f"2 pc {set_name}\n" if set_bonus else f"2 pc {set_name}/"
-            elif occurrence == 4:
-                set_bonus = f'4 pc {set_name}\n'
-        
-
         showcased_char_artifact.append(f'**{artifact.name}**:\n ')
         showcased_char_artifact.append(f'**{artifact.main_stat.value} {PROP_TO_STAT[artifact.main_stat.prop]}**\n')
         for sub_stats in artifact.sub_stats:
-            showcased_char_artifact.append(f'{PROP_TO_STAT[sub_stats.prop]}: {sub_stats.value},')
+            showcased_char_artifact.append(f'{PROP_TO_STAT[sub_stats.prop]}: {sub_stats.value}, ')
         showcased_char_artifact = ''.join(showcased_char_artifact)
         
         showcased_char_artifacts.append(showcased_char_artifact)
+
+        if artifact.set_name in occurrence_dict:
+            occurrence_dict[artifact.set_name] += 1
+        else:
+            occurrence_dict[artifact.set_name] = 1
+    
+    for set_name, occurrence in occurrence_dict.items():
+        if 1 < occurrence < 4 :
+            set_bonus += f"2 pc {set_name}\n" if len(set_bonus) > 0 else f"2 pc {set_name}/"
+        elif occurrence == 4:
+            set_bonus = f'4 pc {set_name}\n'
     return showcased_char_artifacts, set_bonus
