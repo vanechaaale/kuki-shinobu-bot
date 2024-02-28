@@ -96,10 +96,11 @@ def embed_char_info(name: str, type: str):
     character = get_character(name)
 
     char_name = character["name"]
-    skills = ["Normal Attack", "Elemental Skill", "Elemental Burst", "Passive", "Constellations"]
+    skills = ["Normal Attack", "Elemental Skill", "Elemental Burst", "Passive Talents", "Constellations"]
     list = []
     result_str = ""
     embed_icon = ""
+    show_more = False
     if type not in skills:
         return f"Invalid skill type. Please choose from {skills}"
     else:
@@ -116,19 +117,17 @@ def embed_char_info(name: str, type: str):
             result_str = format_e_burst(list)
             embed_icon = get_talent_burst_icon(name)
         elif type == "Passive":
-            list = get_char_passive_talents_list(name)
-            result_str = format_passives_cons(list)
-            embed_icon = get_character_icon(name)
+            return create_passive_talent_embed(name)
         elif type == "Constellations":
-            list = get_char_cons_list(name)
-            result_str = format_passives_cons(list)
-            embed_icon = get_character_icon(name)
+            return create_constellations_embed(name)
+
+    details, more = result_str.split('.')[0], result_str.split('.')[1:]
 
     embed = create_embed(
-        name=type,
-        title=char_name,
+        name=" ",
+        title=f"{char_name}: {type}",
         icon=embed_icon,
-        text=result_str,
+        text=f'{result_str}' if show_more else f'{details}.',
         color=VISION_TO_COLOR[get_vision(name)],
         page=1,
         total_pages=1
@@ -138,12 +137,81 @@ def embed_char_info(name: str, type: str):
         # f"**{char_name}** " + result_str
         # f"**Description:** {character['description']}\n"
 
-def format_passives_cons(list: list):
+def create_combat_talent_embed(name: str):
+    pass
+
+def create_passive_talent_embed(name: str):
+    character = get_character(name)
+    char_name = character["name"]
+    list = get_char_passive_talents_list(name)
+    passive_list = format_passive_talents(list)
+    embed_icon = get_character_icon(name)
+
+    embed = create_embed(
+        name=" ",
+        title=f"{char_name}: Passive Talents",
+        icon=embed_icon,
+        text=f'{passive_list[0]}',
+        color=VISION_TO_COLOR[get_vision(name)],
+        page=1,
+        total_pages=1
+    )
+    for i, talent in enumerate(passive_list):
+        if i == 0:
+            continue
+        embed.add_field(
+            name=" ",
+            value=talent,
+            inline=False
+        )
+    embed.set_thumbnail(url=embed_icon)
+    return embed
+
+def create_constellations_embed(name: str):
+    character = get_character(name)
+    char_name = character["name"]
+    list = get_char_cons_list(name)
+    cons_list = format_constellations(list)
+    embed_icon = get_character_icon(name)
+    embed_image = get_character_constellation(name)
+
+    embed = create_embed(
+        name=" ",
+        title=f"{char_name}: Constellations",
+        icon=embed_icon,
+        text=f'{cons_list[0]}',
+        color=VISION_TO_COLOR[get_vision(name)],
+        page=1,
+        total_pages=1
+    )
+    for i, con in enumerate(cons_list):
+        if i == 0:
+            continue
+        embed.add_field(
+            name=" ",
+            value=con,
+            inline=False
+        )
+    embed.set_thumbnail(url=embed_image)
+    return embed
+
+def format_passive_talents(list: list):
     formatted_list = []
     for item in list:
-        formatted_list.append(f"**⦁ {item['name']}:** {item['description']}\n\n")
+        desc = f"**⦁ {item['name']}:\n** {item['description']}\n\n"
+        if len(desc) > 250:
+            formatted_list.append(f"{desc[:220]}... [Read More](https://genshin-impact.fandom.com/wiki/{item['name'].replace(' ', '_')})\n\n")
+        else:
+            formatted_list.append(desc)
     formatted_list = ''.join(formatted_list)
     return formatted_list
+
+def format_constellations(list: list):
+    cons_list = []
+    for i, item in enumerate(list):
+        formatted_con = format_constellation_str(i, item)
+        cons_list.append(formatted_con)
+    return cons_list
 
 def format_normal_attack(list: list):
     for skill in list:
@@ -161,8 +229,13 @@ def format_e_burst(list: list):
             return format_combat_talent_str(skill)
         
 def format_combat_talent_str(skill: dict):
-    return f"**{skill['name']}:**\n\n {skill['description']}\n\n"
+    return f"**{skill['name']}**\n\n {skill['description']}\n\n"
 
+def format_constellation_str(i: int, item: dict):
+    con_desc =  f"**C{i + 1}: {item['name']}\n** {item['description']}\n\n"
+    if (len(con_desc) > 250):
+        return f"{con_desc[:220]}... [Read More](https://genshin-impact.fandom.com/wiki/{item['name'].replace(' ', '_')})\n\n"
+    return con_desc
 """
     Get the available talent books for the day and the characters that use the books.
 
@@ -237,6 +310,23 @@ def get_daily_talent_books_embeds():
 def get_character_icon(name: str):
     url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")
     response = requests.get(endpoint + f"/characters/{url_name}/icon-big")
+    icon = response.url
+    return icon
+
+"""
+    Get the character's constellation icon.
+
+    Parameters:
+    name: str - Character name.
+
+    Returns:
+    url - Character constellation icon url.
+"""
+def get_character_constellation(name: str):
+    url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")
+    response = requests.get(endpoint + f"/characters/{url_name}/constellation")
+    if response.status_code != 200:
+        return ""
     icon = response.url
     return icon
 
@@ -322,3 +412,4 @@ def get_artifact_icon(icon_name: str):
     response = requests.get(url)
     icon = response.url
     return icon
+

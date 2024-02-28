@@ -267,8 +267,8 @@ async def _books(ctx: CommandContext):
                         "value": "Elemental Burst"
                     },
                     {
-                        "name": "Passive",
-                        "value": "Passive"
+                        "name": "Passive Talents",
+                        "value": "Passive Talents"
                     },
                     {
                         "name": "Constellations",
@@ -279,9 +279,26 @@ async def _books(ctx: CommandContext):
         ]
 )
 async def _skills(ctx: CommandContext, name: str, type: str):
+    button = create_show_details_button()
     await ctx.defer()
     embed = embed_char_info(name, type)
-    await ctx.send(embeds=embed)
+    await ctx.send(embeds=embed) #, components=[button])
+
+    """
+        Event listener for the Show Details button on Character skills message.
+    """
+    @client.event
+    async def on_component(ctx: ComponentContext):
+        try:
+            if ctx.custom_id == "show_details":
+                # get character's combat talents, passive talents, or constellations info
+                embed = embed_char_info(name, type)
+                await ctx.edit(embeds=embed, components=[button])
+            
+        except Exception:
+            print("Something went wrong")
+            pass
+
 
 @client.command(
         name="daily",

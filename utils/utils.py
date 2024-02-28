@@ -51,3 +51,11 @@ def create_page_buttons():
     buttons.append(prev)
     buttons.append(next)
     return buttons
+
+def create_show_details_button():
+    more_details = Button(
+        style=ButtonStyle.PRIMARY,
+        label="Show Details",
+        custom_id="show_details",
+    )
+    return more_details
