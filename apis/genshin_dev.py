@@ -96,7 +96,7 @@ def embed_char_info(name: str, type: str):
             list = get_char_combat_talents(name)
             result_str = format_e_burst(list)
             embed_icon = get_talent_burst_icon(name)
-        elif type == "Passive":
+        elif type == "Passive Talents":
             return create_passive_talent_embed(name)
         elif type == "Constellations":
             return create_constellations_embed(name)
@@ -124,20 +124,19 @@ def create_passive_talent_embed(name: str):
     character = get_character(name)
     char_name = character["name"]
     list = character["passiveTalents"]
-    print("passives", list)
-    passive_list = format_passive_talents(list)
+    passive_talents_list = format_passive_talents(list)
     embed_icon = get_character_icon(name)
 
     embed = create_embed(
         name=" ",
         title=f"{char_name}: Passive Talents",
-        icon=embed_icon,
-        text=f'{passive_list[0]}',
+        # icon=embed_icon,
+        text=passive_talents_list[0],
         color=VISION_TO_COLOR[get_vision(name)],
         page=1,
         total_pages=1
     )
-    for i, talent in enumerate(passive_list):
+    for i, talent in enumerate(passive_talents_list):
         if i == 0:
             continue
         embed.add_field(
@@ -159,8 +158,8 @@ def create_constellations_embed(name: str):
     embed = create_embed(
         name=" ",
         title=f"{char_name}: Constellations",
-        icon=embed_icon,
-        text=f'{cons_list[0]}',
+        # icon=embed_icon,
+        text=cons_list[0],
         color=VISION_TO_COLOR[get_vision(name)],
         page=1,
         total_pages=1
@@ -179,12 +178,11 @@ def create_constellations_embed(name: str):
 def format_passive_talents(list: list):
     formatted_list = []
     for item in list:
-        desc = f"**⦁ {item['name']}:\n** {item['description']}\n\n"
-        if len(desc) > 250:
-            formatted_list.append(f"{desc[:220]}... [Read More](https://genshin-impact.fandom.com/wiki/{item['name'].replace(' ', '_')})\n\n")
+        desc = format_passive_talent_str(item)
+        if len(desc) > 300:
+            formatted_list.append(f"{desc[:250]}... [Read More](https://genshin-impact.fandom.com/wiki/{item['name'].replace(' ', '_')})\n\n")
         else:
             formatted_list.append(desc)
-    formatted_list = ''.join(formatted_list)
     return formatted_list
 
 def format_constellations(list: list):
@@ -217,6 +215,10 @@ def format_constellation_str(i: int, item: dict):
     if (len(con_desc) > 250):
         return f"{con_desc[:220]}... [Read More](https://genshin-impact.fandom.com/wiki/{item['name'].replace(' ', '_')})\n\n"
     return con_desc
+
+def format_passive_talent_str(item: dict):
+    return f"**- {item['name']}:\n** {item['description']}\n\n"
+
 """
     Get the available talent books for the day and the characters that use the books.
 
