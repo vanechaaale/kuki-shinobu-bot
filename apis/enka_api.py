@@ -1,8 +1,8 @@
 from enkapy import Enka
-from apis.genshin_dev import get_character_icon, get_vision
+from apis.genshin_dev import get_artifact_icon, get_character_icon, get_vision
 from utils.mongo_db import get_user_from_db
 from utils.utils import *
-from utils.constants import VISION_TO_COLOR
+from utils.constants import VISION_TO_COLOR, PROP_TO_STAT
 
 client = Enka()
 
@@ -96,57 +96,96 @@ async def get_user_showcase(uid: int, discord_id: int):
     user = await client.fetch_user(uid)
     # showcase_str = f"UID: {uid}\n"
 
-    showcased_chars = []
+    showcased_chars_combat = []
     for character in user.characters:
-        showcased_char = ""
-        showcased_char += f"Level: {character.level}\n"
-        weapon = character.weapon
-        showcased_char += f'Weapon:{weapon.name} R{weapon.refine} Lv.{weapon.level}\n'
-    
-        showcased_char += 'Constellation: ' + str(len(character.internal_constellations)) + '\n'
-        showcased_char += 'Combat Talents:\n'
+        showcased_char_combat = get_char_combat_data(character)
 
-        skill_details = {}
-        for skill in character.skills:
-            if skill.type == 0:
-                skill_details['na'] = skill.level
-            elif skill.type == 1:
-                skill_details['skill'] = skill.level
-            elif skill.type == 2:
-                skill_details['burst'] = skill.level
-
-        showcased_char += f'⦁\tNormal Attack: {skill_details["na"]}\n'
-        showcased_char += f'⦁\tElemental skill: {skill_details["skill"]}\n'
-        showcased_char += f'⦁\tElemental burst: {skill_details["burst"]}\n'
-
-        # showcase_str += 'Artifacts:\n'
-        # for artifact in character.artifacts:
-        #     showcase_str += f'\t{artifact.set_name} {artifact.name}:\n'
-        #     showcase_str += f'\t{artifact.main_stat.prop}:{artifact.main_stat.value}\n'
-        #     for sub_stats in artifact.sub_stats:
-        #         showcase_str += f'\t\t{sub_stats.prop}:{sub_stats.value}\n'
-        
+        showcased_char_artifacts, set_bonus = get_char_artifact_data(character)
 
         showcase_dict = {
             "name": character.name,
             "vision": get_vision(character.name),
-            "description": showcased_char
+            "description": showcased_char_combat,
+            "artifacts": showcased_char_artifacts,
+            "set_bonus": set_bonus
         }
-        showcased_chars.append(showcase_dict)
+        showcased_chars_combat.append(showcase_dict)
 
     showcased_embeds = []
-    for character in showcased_chars:
-        page_index = showcased_chars.index(character) + 1
+    for character in showcased_chars_combat:
+        page_index = showcased_chars_combat.index(character) + 1
         icon = get_character_icon(character["name"])
         vision_color = VISION_TO_COLOR[character["vision"]]
         embed = create_embed(
-            name=character["name"], 
+            title=character["name"],
+            name=" ", 
             text=character["description"], 
             icon=icon, 
             color=vision_color,
             page=page_index,
-            total_pages=len(showcased_chars)
+            total_pages=len(showcased_chars_combat)
             )
+        embed.add_field(
+            name=f"{character['set_bonus']}",
+            value='\n\n'.join(character["artifacts"]),
+            inline=False
+        )
+        embed.set_thumbnail(url=icon)
         showcased_embeds.append(embed)
 
     return showcased_embeds
+
+def get_char_combat_data(character):
+    showcased_char_combat = []
+    showcased_char_combat.append(f"Lv. {character.level}\n")
+    weapon = character.weapon
+    showcased_char_combat.append(f'Weapon:{weapon.name} R{weapon.refine} Lv.{weapon.level}\n')
+
+    showcased_char_combat.append('Constellation: ' + str(len(character.internal_constellations)) + '\n')
+    showcased_char_combat.append('Combat Talents:\n')
+
+    skill_details = {}
+    for skill in character.skills:
+        if skill.type == 0:
+            skill_details['na'] = skill.level
+        elif skill.type == 1:
+            skill_details['skill'] = skill.level
+        elif skill.type == 2:
+            skill_details['burst'] = skill.level
+
+    showcased_char_combat.append(f'⦁\tNormal Attack: {skill_details["na"]}\n')
+    showcased_char_combat.append(f'⦁\tElemental skill: {skill_details["skill"]}\n')
+    showcased_char_combat.append(f'⦁\tElemental burst: {skill_details["burst"]}\n')
+
+    return ''.join(showcased_char_combat)
+
+def get_char_artifact_data(character):
+    set_bonus = None
+    showcased_char_artifacts = []
+    for artifact in character.artifacts:
+        showcased_char_artifact = []
+        artifact_icon = get_artifact_icon(artifact.set_name)
+
+        # Get the number of artifacts from a set the char is holding (2 pc / 2 pc vs 4 pc)
+        occurrence_dict = {}
+
+        if artifact.set_name not in occurrence_dict:
+            occurrence_dict[artifact.set_name] = 1
+        else:
+            occurrence_dict[artifact.set_name] += 1
+        
+        for set_name, occurrence in occurrence_dict.items():
+            if 1 < occurrence < 4 :
+                set_bonus += f"2 pc {set_name}\n" if set_bonus else f"2 pc {set_name}/"
+            elif occurrence == 4:
+                set_bonus = f'4 pc {set_name}\n'
+        
+
+        showcased_char_artifact.append(f'**{artifact.name}**:\n ')
+        showcased_char_artifact.append(f'**{artifact.main_stat.value} {PROP_TO_STAT[artifact.main_stat.prop]}**\n')
+        for sub_stats in artifact.sub_stats:
+            showcased_char_artifact.append(f'{PROP_TO_STAT[sub_stats.prop]}: {sub_stats.value},')
+        showcased_char_artifact = ''.join(showcased_char_artifact)
+        
+        showcased_char_artifacts.append(showcased_char_artifact)
+    return showcased_char_artifacts, set_bonus

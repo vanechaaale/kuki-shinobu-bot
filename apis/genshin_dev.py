@@ -133,14 +133,16 @@ def embed_char_info(name: str, type: str):
         page=1,
         total_pages=1
     )
+    embed.set_thumbnail(url=embed_icon)
     return embed
         # f"**{char_name}** " + result_str
         # f"**Description:** {character['description']}\n"
 
 def format_passives_cons(list: list):
-    formatted_list = ""
+    formatted_list = []
     for item in list:
-        formatted_list += f"**⦁ {item['name']}:** {item['description']}\n\n"
+        formatted_list.append(f"**⦁ {item['name']}:** {item['description']}\n\n")
+    formatted_list = ''.join(formatted_list)
     return formatted_list
 
 def format_normal_attack(list: list):
@@ -205,18 +207,21 @@ def get_daily_talent_books_embeds():
     today = WEEKDAYS[datetime.datetime.now().weekday()]
     embeds = []
     for book in books:
+        icon = get_guide_icon(book)
         characters = books[book]
-        characters_str = ""
+        characters_str = []
         for character in characters:
-            characters_str += f"⦁ {character.capitalize()}\n"
+            characters_str.append(f"⦁ {character.capitalize()}\n")
+        characters_str = ''.join(characters_str)
         embed = create_embed(
             name=book.capitalize(),
             title=f"Available Talent Books for {today}:",
-            icon=get_guide_icon(book),
+            icon=icon,
             text=characters_str,
             page=list(books.keys()).index(book) + 1,
             total_pages=len(books)
         )
+        embed.set_thumbnail(url=icon)
         embeds.append(embed)
     return embeds
 
@@ -300,3 +305,20 @@ def get_char_url_name(name: str):
             name = key
     url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL.keys() else name.lower().replace(" ", "-")
     return url_name
+
+"""
+    Get the artifact icon for a flower of life for the artifact set.
+
+    Parameters:
+    icon_name: str - Artifact set name.
+
+    Returns:
+    url - Artifact icon url.
+"""
+def get_artifact_icon(icon_name: str):
+    # to lowercase and replace all apostrophes with hyphens
+    url_name = icon_name.lower().replace("'", "-")
+    url = endpoint + f"/artifact/{url_name}/flower-of-life"
+    response = requests.get(url)
+    icon = response.url
+    return icon

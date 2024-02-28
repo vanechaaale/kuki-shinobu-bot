@@ -165,18 +165,22 @@ async def _showcase(ctx: CommandContext, uid: int = False):
     """
     @client.event
     async def on_component(ctx: ComponentContext):
-        # get index of current showcase
-        for i, embed in enumerate(showcases):
-            if embed.title in ctx.message.embeds[0].title:
-                idx = i
-                break
-        if ctx.custom_id == "next_page":
-            idx = idx + 1 if idx < len(showcases) - 1 else 0
-            await ctx.edit(embeds=showcases[idx], components=[buttons])
-        elif ctx.custom_id == "prev_page":
-            idx = idx - 1 if idx > 0 else len(showcases) - 1
-            await ctx.edit(embeds=showcases[idx], components=[buttons])
-        
+        try:
+            # check that the embed titles match to get the current idx
+            for i, embed in enumerate(showcases):
+                if embed.title in ctx.message.embeds[0].title:
+                    idx = i
+                    break
+            if ctx.custom_id == "next_page":
+                idx = idx + 1 if idx < len(showcases) - 1 else 0
+                await ctx.edit(embeds=showcases[idx], components=[buttons])
+            elif ctx.custom_id == "prev_page":
+                idx = idx - 1 if idx > 0 else len(showcases) - 1
+                await ctx.edit(embeds=showcases[idx], components=[buttons])
+        except Exception:
+            print("Something went wrong")
+            pass
+            
     
 """
     Fetch the author's notes (realm currency, resin, comissions, and expeditions). 
@@ -206,8 +210,8 @@ async def _books(ctx: CommandContext):
     # List of available talent books as embeds
     embeds = get_daily_talent_books_embeds()
     buttons = create_page_buttons()
+
     await ctx.defer()
-     # Send first page
     await ctx.send(embeds=embeds[0], components=[buttons])
     
     """
@@ -216,8 +220,8 @@ async def _books(ctx: CommandContext):
     @client.event
     async def on_component(ctx: ComponentContext):
         try:
-            # get index of current page
             for i, embed in enumerate(embeds):
+                # Check that the embed names match
                 if embed.fields[0].name in ctx.message.embeds[0].fields[0].name:
                     idx = i
                     break
@@ -227,8 +231,8 @@ async def _books(ctx: CommandContext):
             elif ctx.custom_id == "prev_page":
                 idx = idx - 1 if idx > 0 else len(embeds) - 1
                 await ctx.edit(embeds=embeds[idx], components=[buttons])
-        except LibraryException as e:
-            print(e)
+        except Exception:
+            print("Something went wrong")
             pass
 
 @client.command(
@@ -314,6 +318,8 @@ async def on_ready():
 
 @client.event
 async def on_command_error(ctx, error):
-    await ctx.send(f"Error: {str(error)}")
+    # handle command errors
+    print(error)
+    pass
 
 client.start()
