@@ -140,7 +140,7 @@ def get_char_combat_data(character):
     showcased_char_combat.append(f'C{str(len(character.internal_constellations))} ')
     showcased_char_combat.append(f"Lv. {character.level}\n\n")
     weapon = character.weapon
-    showcased_char_combat.append(f'Weapon: Lv.{weapon.level} R{weapon.refine} {weapon.name}\n\n')
+    showcased_char_combat.append(f'Weapon: R{weapon.refine} {weapon.name} Lv.{weapon.level} \n\n')
 
     showcased_char_combat.append('Combat Talents:\n')
 
