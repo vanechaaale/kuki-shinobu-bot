@@ -43,26 +43,6 @@ def get_char_combat_talents(name: str):
     return skillTalents
 
 """
-    Get the passive talents of a Genshin Impact character.
-    
-    Parameters:
-    name: str - Character name.
-
-    Returns:
-    list - list of dictionary of Character passive talents. 
-        {
-            "name": str, 
-            "unlock": int, 
-            "description": str,
-            "level": int
-        }
-"""
-def get_char_passive_talents_list(name: str):
-    character = get_character(name)
-    talents = character["passiveTalents"]
-    return talents
-
-"""
     Get the constellations of a Genshin Impact character.
 
     Parameters:
@@ -143,7 +123,8 @@ def create_combat_talent_embed(name: str):
 def create_passive_talent_embed(name: str):
     character = get_character(name)
     char_name = character["name"]
-    list = get_char_passive_talents_list(name)
+    list = character["passiveTalents"]
+    print("passives", list)
     passive_list = format_passive_talents(list)
     embed_icon = get_character_icon(name)
 
@@ -305,7 +286,7 @@ def get_daily_talent_books_embeds():
     name: str - Character name.
 
     Returns:
-    url - Character icon url.
+    url - Character icon url1.
 """
 def get_character_icon(name: str):
     url_name = CHAR_TO_URL[name] if name in CHAR_TO_URL else name.lower().replace(" ", "-")

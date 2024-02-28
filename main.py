@@ -306,8 +306,8 @@ async def _skills(ctx: CommandContext, name: str, type: str):
 )
 async def _daily(ctx: CommandContext):
     try:
-        await claim_daily_rewards(ctx.author.id)
-        await ctx.send("Daily rewards claimed.")
+        success_msg = await claim_daily_rewards(ctx.author.id)
+        await ctx.send(success_msg)
     except genshin.AlreadyClaimed:
         # Catch api error when trying to claim daily rewards again
         await ctx.send(genshin.AlreadyClaimed.msg)

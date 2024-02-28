@@ -191,8 +191,8 @@ async def get_notes_embed(discord_id: int):
 
 async def claim_daily_rewards(discord_id: int):
     client = await get_genshin_api_client(discord_id)
-    message = await client.claim_daily_reward()
-    return str(message)
+    await client.claim_daily_reward()
+    return "Daily rewards claimed."
 
 async def redeem_code(code: str, discord_id: int):
     client = await get_genshin_api_client(discord_id)
