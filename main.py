@@ -156,33 +156,20 @@ async def _showcase(ctx: CommandContext, uid: int = False):
     # get list of showcased character's embeds
     showcases = await get_user_showcase(uid, ctx.author.id)
     
-    buttons = create_page_buttons()
+    buttons = []
 
     # Send first showcase
-    await ctx.send(embeds=showcases[0], components=[buttons])
+    interaction = await ctx.send(embeds=showcases[0], components=[buttons])
+    buttons = create_page_buttons(custom_id=interaction.id)
+    await ctx.edit(embeds=showcases[0], components=[buttons])
     
     """
         Event listener for the showcase buttons.
     """
     @client.event
     async def on_component(ctx: ComponentContext):
-        try:
-            # check that the embed titles match to get the current idx
-            for i, embed in enumerate(showcases):
-                if embed.title in ctx.message.embeds[0].title:
-                    idx = i
-                    break
-            if ctx.custom_id == "next_page":
-                idx = idx + 1 if idx < len(showcases) - 1 else 0
-                await ctx.edit(embeds=showcases[idx], components=[buttons])
-            elif ctx.custom_id == "prev_page":
-                idx = idx - 1 if idx > 0 else len(showcases) - 1
-                await ctx.edit(embeds=showcases[idx], components=[buttons])
-        except Exception:
-            print("Something went wrong")
-            pass
-            
-    
+        await handle_page_buttons(ctx, buttons, int(interaction.id), showcases)
+
 """
     Fetch the author's notes (realm currency, resin, comissions, and expeditions). 
 
@@ -211,32 +198,21 @@ async def _notes(ctx: CommandContext):
 async def _books(ctx: CommandContext):
     # List of available talent books as embeds
     embeds = get_daily_talent_books_embeds()
-    buttons = create_page_buttons()
+    buttons = []
 
     await ctx.defer()
-    await ctx.send(embeds=embeds[0], components=[buttons])
+    interaction = await ctx.send(embeds=embeds[0], components=[buttons])
+    buttons = create_page_buttons(custom_id=interaction.id)
+    await ctx.edit(embeds=embeds[0], components=buttons)
     
     """
         Event listener for the talent book buttons.
     """
     @client.event
     async def on_component(ctx: ComponentContext):
-        try:
-            for i, embed in enumerate(embeds):
-                # Check that the embed names match
-                if embed.fields[0].name in ctx.message.embeds[0].fields[0].name:
-                    idx = i
-                    break
-            if ctx.custom_id == "next_page":
-                idx = idx + 1 if idx < len(embeds) - 1 else 0
-                await ctx.edit(embeds=embeds[idx], components=[buttons])
-            elif ctx.custom_id == "prev_page":
-                idx = idx - 1 if idx > 0 else len(embeds) - 1
-                await ctx.edit(embeds=embeds[idx], components=[buttons])
-        except Exception:
-            print("Something went wrong")
-            pass
+        await handle_page_buttons(ctx, buttons, int(interaction.id), embeds, compareName=True)
 
+        
 @client.command(
         name="skills",
         description="Display Genshin character information.",
@@ -282,32 +258,20 @@ async def _skills(ctx: CommandContext, name: str, type: str):
     components=[]
     await ctx.defer()
     embeds, scalings = embed_char_skill_info(name, type)
-    print('length of embeds:', str(len(embeds)))
+    interaction = await ctx.send(embeds=embeds[0], components=components)
     # Normal Attack, Elemental Skill, Elemental Burst have a Show Details button
     if (type == CharacterSkills.NORMAL_ATTACK.value or
         type == CharacterSkills.ELEMENTAL_SKILL.value or
         type == CharacterSkills.ELEMENTAL_BURST.value) and scalings:
-        button = create_page_buttons()
-        components.append(button)
-    interaction = await ctx.send(embeds=embeds[0], components=components)
-
-    await interaction.reply(embeds=embeds[0], components=components)
-
+        buttons = create_page_buttons(custom_id=interaction.id)
+        components.append(buttons)
+        await ctx.edit(embeds=embeds[0], components=components)
     """
         Event listener for the Show Details button on Character skills message.
     """
     @client.event
     async def on_component(ctx: ComponentContext):
-        try:
-            if ctx.custom_id == "next_page":
-                idx = 1
-                await ctx.edit(embeds=embeds[idx], components=[button])
-            elif ctx.custom_id == "prev_page":
-                idx = 0
-                await ctx.edit(embeds=embeds[idx], components=[button])
-        except Exception:
-            pass
-
+        await handle_page_buttons(ctx, buttons, int(interaction.id), embeds, compareName=True)
 
 @client.command(
         name="daily",
@@ -348,6 +312,6 @@ async def on_ready():
 async def on_command_error(ctx, error):
     # handle command errors
     print(error)
-    pass
+    await ctx.send(str(error))
 
 client.start()

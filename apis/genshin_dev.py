@@ -112,7 +112,6 @@ def embed_char_skill_info(name: str, type: str):
         skill_name = talents[0]['name']
         result_str = f"{result_str[:770]}... [Read More](https://genshin-impact.fandom.com/wiki/{skill_name.replace(' ', '_')})\n\n"
 
-    print('made it here!')
     embeds = []
 
     summary_embed = create_embed(
@@ -129,8 +128,8 @@ def embed_char_skill_info(name: str, type: str):
 
     if scalings:
         scalings_embed = create_embed(
-            name=" ",
-            title=f"{char_name}: {type} Scalings",
+            name="Ability Details",
+            title=f"{char_name}: {type}",
             icon=embed_icon,
             text=upgrades_str,
             color=VISION_TO_COLOR[get_vision(name)],
@@ -139,7 +138,6 @@ def embed_char_skill_info(name: str, type: str):
         )
         scalings_embed.set_thumbnail(url=embed_icon)
         embeds.append(scalings_embed)
-        print('made scalings embed')
     return (embeds, scalings)
 
 def create_combat_talent_embed(name: str):
@@ -170,7 +168,7 @@ def create_passive_talent_embed(name: str):
             inline=False
         )
     embed.set_thumbnail(url=embed_icon)
-    return embed
+    return ([embed], False)
 
 def create_constellations_embed(name: str):
     character = get_character(name)
@@ -198,7 +196,7 @@ def create_constellations_embed(name: str):
             inline=False
         )
     embed.set_thumbnail(url=embed_image)
-    return embed
+    return ([embed], False)
 
 def format_passive_talents(list: list):
     formatted_list = []
@@ -253,7 +251,6 @@ def format_talent_upgrades_list(list: list):
 def get_talent(character: dict, type: str):
     for talent in character["skillTalents"]:
         if talent['unlock'] == type:
-            print("found a talent that matches: ", talent)
             return talent
         
 def get_talent_upgrades(character: dict, type: str):
@@ -264,7 +261,6 @@ def get_talent_upgrades(character: dict, type: str):
         upgrades_list = talent['upgrades']
         scalings = True
         upgrades_str = format_talent_upgrades_list(upgrades_list)
-    print('upgrades str: ', upgrades_str)
     return (upgrades_str, scalings)
                 
 
