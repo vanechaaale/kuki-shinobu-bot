@@ -280,15 +280,18 @@ async def _books(ctx: CommandContext):
 )
 async def _skills(ctx: CommandContext, name: str, type: str):
     components=[]
+    await ctx.defer()
+    embeds, scalings = embed_char_skill_info(name, type)
+    print('length of embeds:', str(len(embeds)))
     # Normal Attack, Elemental Skill, Elemental Burst have a Show Details button
     if (type == CharacterSkills.NORMAL_ATTACK.value or
         type == CharacterSkills.ELEMENTAL_SKILL.value or
-        type == CharacterSkills.ELEMENTAL_BURST.value):
-        button = create_show_details_button()
+        type == CharacterSkills.ELEMENTAL_BURST.value) and scalings:
+        button = create_page_buttons()
         components.append(button)
-    await ctx.defer()
-    embed = embed_char_info(name, type)
-    await ctx.send(embeds=embed, components=components)
+    interaction = await ctx.send(embeds=embeds[0], components=components)
+
+    await interaction.reply(embeds=embeds[0], components=components)
 
     """
         Event listener for the Show Details button on Character skills message.
@@ -296,13 +299,13 @@ async def _skills(ctx: CommandContext, name: str, type: str):
     @client.event
     async def on_component(ctx: ComponentContext):
         try:
-            if ctx.custom_id == "show_details":
-                # Show more Character Combat Skill details
-                #await ctx.edit(embeds=embed, components=[button])
-                # TODO: implement this
-                pass
+            if ctx.custom_id == "next_page":
+                idx = 1
+                await ctx.edit(embeds=embeds[idx], components=[button])
+            elif ctx.custom_id == "prev_page":
+                idx = 0
+                await ctx.edit(embeds=embeds[idx], components=[button])
         except Exception:
-            print("Something went wrong")
             pass
 
 

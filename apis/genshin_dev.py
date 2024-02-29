@@ -70,31 +70,38 @@ def get_char_cons_list(name: str):
     type: str - Type of skill. (Normal Attack, Elemental Skill, Elemental Burst, Passive, Constellations)
 
     Returns:
-    embed - Embed of the character's combat talents, passive talents, or constellations.
+    tuple - (list of Embeds, bool)
+        list of Embeds - list of embeds for the character's combat talents, passive talents, or constellations.
+        bool - True if the talent has scalings, False if not.
 """
-def embed_char_info(name: str, type: str):
+def embed_char_skill_info(name: str, type: str):
     character = get_character(name)
 
     char_name = character["name"]
     skills = [skill.value for skill in CharacterSkills]
-    list = []
+    talents = []
+    scalings = False
     result_str = ""
     embed_icon = ""
+    upgrades_str = ""
     if type not in skills:
         return f"Invalid skill type. Please choose from {skills}"
     else:
         if type == CharacterSkills.NORMAL_ATTACK.value:
-            list = get_char_combat_talents(name)
-            result_str = format_normal_attack(list)
+            talents = character["skillTalents"]
+            result_str = format_normal_attack(talents)
             embed_icon = get_talent_na_icon(name)
+            upgrades_str, scalings = get_talent_upgrades(character, type)
         elif type == CharacterSkills.ELEMENTAL_SKILL.value:
-            list = get_char_combat_talents(name)
-            result_str = format_e_skill(list)
+            talents = character["skillTalents"]
+            result_str = format_e_skill(talents)
             embed_icon = get_talent_skill_icon(name)
+            upgrades_str, scalings = get_talent_upgrades(character, type)
         elif type == CharacterSkills.ELEMENTAL_BURST.value:
-            list = get_char_combat_talents(name)
-            result_str = format_e_burst(list)
+            talents = character["skillTalents"]
+            result_str = format_e_burst(talents)
             embed_icon = get_talent_burst_icon(name)
+            upgrades_str, scalings = get_talent_upgrades(character, type)
         elif type == CharacterSkills.PASSIVE_TALENTS.value:
             return create_passive_talent_embed(name)
         elif type == CharacterSkills.CONSTELLATIONS.value:
@@ -102,22 +109,38 @@ def embed_char_info(name: str, type: str):
 
     # If it's too long, redirect link to wiki
     if len(result_str) > 800:
-        skill_name = list[0]['name']
+        skill_name = talents[0]['name']
         result_str = f"{result_str[:770]}... [Read More](https://genshin-impact.fandom.com/wiki/{skill_name.replace(' ', '_')})\n\n"
 
-    embed = create_embed(
+    print('made it here!')
+    embeds = []
+
+    summary_embed = create_embed(
         name=" ",
         title=f"{char_name}: {type}",
         icon=embed_icon,
         text=result_str,
         color=VISION_TO_COLOR[get_vision(name)],
         page=1,
-        total_pages=1
+        total_pages=2 if scalings else 1
     )
-    embed.set_thumbnail(url=embed_icon)
-    return embed
-        # f"**{char_name}** " + result_str
-        # f"**Description:** {character['description']}\n"
+    summary_embed.set_thumbnail(url=embed_icon)
+    embeds.append(summary_embed)
+
+    if scalings:
+        scalings_embed = create_embed(
+            name=" ",
+            title=f"{char_name}: {type} Scalings",
+            icon=embed_icon,
+            text=upgrades_str,
+            color=VISION_TO_COLOR[get_vision(name)],
+            page=2,
+            total_pages=2
+        )
+        scalings_embed.set_thumbnail(url=embed_icon)
+        embeds.append(scalings_embed)
+        print('made scalings embed')
+    return (embeds, scalings)
 
 def create_combat_talent_embed(name: str):
     pass
@@ -220,6 +243,30 @@ def format_constellation_str(i: int, item: dict):
 
 def format_passive_talent_str(item: dict):
     return f"**- {item['name']}:\n** {item['description']}\n\n"
+
+def format_talent_upgrades_list(list: list):
+    upgrades = []
+    for upgrade in list:
+        upgrades.append(f"- {upgrade['name']}: {upgrade['value']}\n")
+    return ''.join(upgrades)
+
+def get_talent(character: dict, type: str):
+    for talent in character["skillTalents"]:
+        if talent['unlock'] == type:
+            print("found a talent that matches: ", talent)
+            return talent
+        
+def get_talent_upgrades(character: dict, type: str):
+    upgrades_str = ""
+    scalings = False
+    talent = get_talent(character, type)
+    if 'upgrades' in talent:
+        upgrades_list = talent['upgrades']
+        scalings = True
+        upgrades_str = format_talent_upgrades_list(upgrades_list)
+    print('upgrades str: ', upgrades_str)
+    return (upgrades_str, scalings)
+                
 
 """
     Get the available talent books for the day and the characters that use the books.
