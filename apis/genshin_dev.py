@@ -310,20 +310,29 @@ def get_daily_talent_books_embeds():
     for book in books:
         icon = get_guide_icon(book)
         characters = books[book]
-        characters_str = []
-        for character in characters:
-            characters_str.append(f"⦁ {character.capitalize()}\n")
-        characters_str = ''.join(characters_str)
+        # 4 chars per column
+        rows = []
+        col = []
+        for i, char in enumerate(characters):
+            if i % 4 == 0 and i != 0:
+                col = ', '.join(col)
+                rows.append(col)
+                col = []
+            col.append(char.capitalize())
+        col = ', '.join(col)
+        rows.append(col)
+        rows = '\n'.join(rows)
         embed = create_embed(
-            name=book.capitalize(),
-            title=f"Available Talent Books for {today}:",
-            icon=icon,
-            text=characters_str,
+            title=f"{book.capitalize()}",
+            name="Used By:",
+            text=f"{rows}",
             page=list(books.keys()).index(book) + 1,
             total_pages=len(books)
         )
-        embed.set_thumbnail(url=icon)
+
+        embed.set_image(url=icon)
         embeds.append(embed)
+
     return embeds
 
 """

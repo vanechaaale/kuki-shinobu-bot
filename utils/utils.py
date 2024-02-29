@@ -68,12 +68,12 @@ async def handle_page_buttons(ctx: ComponentContext,
     idx = 0
     # get current idx
     for i, embed in enumerate(embeds):
-        c1 = embed.title
-        c2 = ctx.message.embeds[0].title
         if compareName:
             c1 = embed.fields[0].name
             c2 = ctx.message.embeds[0].fields[0].name
-            
+        else:
+            c1 = embed.title
+            c2 = ctx.message.embeds[0].title
         if c1 == c2:
             idx = i
             break

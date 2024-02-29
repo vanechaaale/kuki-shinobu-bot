@@ -197,11 +197,10 @@ async def _notes(ctx: CommandContext):
 )
 async def _books(ctx: CommandContext):
     # List of available talent books as embeds
+    await ctx.defer()
     embeds = get_daily_talent_books_embeds()
     buttons = []
-
-    await ctx.defer()
-    interaction = await ctx.send(embeds=embeds[0], components=[buttons])
+    interaction = await ctx.send(embeds=embeds[0], components=buttons)
     buttons = create_page_buttons(custom_id=interaction.id)
     await ctx.edit(embeds=embeds[0], components=buttons)
     
@@ -210,7 +209,7 @@ async def _books(ctx: CommandContext):
     """
     @client.event
     async def on_component(ctx: ComponentContext):
-        await handle_page_buttons(ctx, buttons, int(interaction.id), embeds, compareName=True)
+        await handle_page_buttons(ctx, buttons, int(interaction.id), embeds)
 
         
 @client.command(
@@ -255,17 +254,16 @@ async def _books(ctx: CommandContext):
         ]
 )
 async def _skills(ctx: CommandContext, name: str, type: str):
-    components=[]
+    buttons = []
     await ctx.defer()
     embeds, scalings = embed_char_skill_info(name, type)
-    interaction = await ctx.send(embeds=embeds[0], components=components)
+    interaction = await ctx.send(embeds=embeds[0], components=buttons)
     # Normal Attack, Elemental Skill, Elemental Burst have a Show Details button
     if (type == CharacterSkills.NORMAL_ATTACK.value or
         type == CharacterSkills.ELEMENTAL_SKILL.value or
         type == CharacterSkills.ELEMENTAL_BURST.value) and scalings:
         buttons = create_page_buttons(custom_id=interaction.id)
-        components.append(buttons)
-        await ctx.edit(embeds=embeds[0], components=components)
+        await ctx.edit(embeds=embeds[0], components=buttons)
     """
         Event listener for the Show Details button on Character skills message.
     """
