@@ -124,15 +124,13 @@ async def _authenticate(
 )
 async def _summary(ctx: CommandContext, uid: int = False):
     await ctx.defer()
-    summary_str = await get_genshin_api_user_summary(ctx.author.id, uid)
-    await ctx.send(summary_str)
+    summary_embeds = await get_enka_user_summary(ctx.author.id, uid)
+    await ctx.send(embeds=summary_embeds[0])
 
 
 """
     Fetch a Genshin player's character showcase. If no UID is provided, default to author's UID.
     
-    Requirements: Cookies & Authentication Tokens
-
     Parameters:
     uid: int - Optional Genshin player UID. 
 

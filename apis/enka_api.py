@@ -1,8 +1,13 @@
+import requests
+import json
+
 from enkapy import Enka
 from apis.genshin_dev import get_artifact_icon, get_character_icon, get_vision
 from utils.mongo_db import get_user_from_db
 from utils.utils import *
 from utils.constants import VISION_TO_COLOR, PROP_TO_STAT
+from splinter import Browser
+ 
 
 client = Enka()
 
@@ -57,34 +62,64 @@ async def main():
 """
     Fetch a Genshin player's summary. If no UID is provided, default to author's UID.
 
-    Requirements: Cookies & Authentication
-
     Parameters:
         uid: int - Genshin player UID
 
     Returns:
         str - Genshin player summary string containing, UID, Nickname, Level, Signature, and Abyss floor
 """
-async def get_enka_user_summary(uid: int, discord_id: int):
+async def get_enka_user_summary(discord_id: int, uid: int = False):
     # If UID is not provided, look for the author's UID
     await client.load_lang()
+
     if not uid:
         user = get_user_from_db(discord_id)
         uid = user['uid']
+        # If no uid was found, the discord user has not linked their own genshin uid yet.
 
     user = await client.fetch_user(uid)
-    summary_str = f"UID: {uid}\n"
+    nameCardId = user.player.nameCardId
+    summary_str = []
 
     # case for unknown characters in username (looking at you, Greg)
     try: 
-        summary_str += f"Nickname: {user.player.nickname}\n"
+        title = user.player.nickname
+        summary_str.append(f"UID: {uid}")
     except UnicodeEncodeError:
-        print("couldn't print nickname :(")
+        title = str(uid)
+
         
-    summary_str += f"Level: {user.player.level}\n"
-    summary_str += f'Signature: {user.player.signature}\n'
-    summary_str += f'Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}\n'
-    return summary_str
+    summary_str.append(f"Level: {user.player.level}\n")
+    summary_str.append(f'Signature: {user.player.signature}\n')
+    summary_str.append(f'Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}\n')
+    summary_str.append(f'Characters owned: {len(user.characters)}')
+    summary_str = ''.join(summary_str)
+
+    embeds = get_enka_user_summary_embeds(title=title, p1=summary_str, nameCardId=nameCardId)
+    return embeds
+
+def get_enka_user_summary_embeds(nameCardId: int, title: str, p1: str, p2=None, p3=None):
+    embeds = []
+    namecard = ""
+    e1 = create_embed(
+        title=title,
+        name=" ",
+        text=p1,
+        color=VISION_TO_COLOR["Anemo"]
+    )
+    res_url = f"https://api.ambr.top/v2/EN/namecard/{nameCardId}?vh=44F5"
+    res = requests.get(res_url).json()
+    if res["response"] == 200:
+        data = res["data"]
+        iconName = data['icon'].replace("Icon", "Pic")
+        print("iconName: ", str(iconName))
+        url = f"https://api.ambr.top/assets/UI/namecard/{iconName}_P.png?vh=2024020300"
+        namecard_response = requests.get(url)
+        if namecard_response.status_code == 200:
+            namecard = namecard_response.url
+    e1.set_image(url=namecard)
+    embeds.append(e1)
+    return embeds
 
 async def get_user_showcase(uid: int, discord_id: int):
     # If UID is not provided, look for the author's UID
