@@ -1,63 +1,13 @@
 import requests
-import json
+import chompjs
 
 from enkapy import Enka
 from apis.genshin_dev import get_artifact_icon, get_character_icon, get_vision
 from utils.mongo_db import get_user_from_db
 from utils.utils import *
 from utils.constants import VISION_TO_COLOR, PROP_TO_STAT
-from splinter import Browser
- 
 
 client = Enka()
-
-
-# Testing the Enka API
-async def main():
-    await client.load_lang()
-    user = await client.fetch_user(601328008)
-    # case for unknown characters in username
-    try: 
-        print(f"Nickname: {user.player.nickname}")
-    except UnicodeEncodeError:
-        print("couldn't print nickname :(")
-        
-    print(f"Level: {user.player.level}")
-    print(f'Signature: {user.player.signature}')
-    print(f'World level:{user.player.worldLevel}')
-    print(f'Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}')
-    # fetch first character
-    if user.characters:
-        character = user.characters[0]
-        print(f'Name: {character.name}')
-        print(f'Ascension: {character.ascension}')
-        print(f'Level: {character.level}')
-        print(f'Exp: {character.experience}')
-        print('Weapon:')
-        weapon = character.weapon
-        print(f'\tName: {weapon.name}')
-        print(f'\tLevel: {weapon.level}')
-        print(f'\tRefine: {weapon.refine}')
-        print(f'\tStar level: {weapon.rank}')
-    
-        print('Constellations:')
-        for constellation in character.constellations:
-            if constellation.activated:
-                print(f'\t{constellation.name} Activated')
-        print('Skills:')
-        for skill in character.skills:
-            if skill.type == 0:
-                print(f'\tNormal Attack level: {skill.level}')
-            elif skill.type == 1:
-                print(f'\tElemental skill level: {skill.level}')
-            elif skill.type == 2:
-                print(f'\tElemental burst level: {skill.level}')
-        print('Artifacts:')
-        for artifact in character.artifacts:
-            print(f'\t{artifact.set_name} {artifact.name}:')
-            print(f'\t{artifact.main_stat.prop}:{artifact.main_stat.value}')
-            for sub_stats in artifact.sub_stats:
-                print(f'\t\t{sub_stats.prop}:{sub_stats.value}')
 
 """
     Fetch a Genshin player's summary. If no UID is provided, default to author's UID.
@@ -79,47 +29,91 @@ async def get_enka_user_summary(discord_id: int, uid: int = False):
 
     user = await client.fetch_user(uid)
     nameCardId = user.player.nameCardId
+    avatarId = user.player.profilePicture.avatarId
     summary_str = []
 
     # case for unknown characters in username (looking at you, Greg)
     try: 
         title = user.player.nickname
-        summary_str.append(f"UID: {uid}")
+        summary_str.append(f"UID: {uid}\n")
     except UnicodeEncodeError:
         title = str(uid)
-
         
     summary_str.append(f"Level: {user.player.level}\n")
     summary_str.append(f'Signature: {user.player.signature}\n')
-    summary_str.append(f'Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}\n')
-    summary_str.append(f'Characters owned: {len(user.characters)}')
+    summary_str.append(f'Spiral Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}\n')
     summary_str = ''.join(summary_str)
 
-    embeds = get_enka_user_summary_embeds(title=title, p1=summary_str, nameCardId=nameCardId)
+    embeds = get_enka_user_summary_embeds(title=title, avatarId=avatarId, p1=summary_str, nameCardId=nameCardId)
     return embeds
 
-def get_enka_user_summary_embeds(nameCardId: int, title: str, p1: str, p2=None, p3=None):
+def get_enka_user_summary_embeds(nameCardId: int, avatarId : int, title: str, p1: str, p2=None, p3=None):
     embeds = []
-    namecard = ""
     e1 = create_embed(
         title=title,
         name=" ",
         text=p1,
         color=VISION_TO_COLOR["Anemo"]
     )
+    nameCard = getNameCard(nameCardId)
+    profilePicture = getProfilePicture(avatarId)
+    
+    e1.set_thumbnail(url=profilePicture)
+    e1.set_image(url=nameCard)
+    embeds.append(e1)
+    return embeds
+
+"""
+    Get a Genshin Account's Profile Picture
+
+    Parameters:
+        avatarId: int - Genshin player AvatarIcon id
+
+    Returns:
+        str - Genshin player profile picture url or empty string if no avatar was found
+"""
+def getProfilePicture(avatarId: int):
+    # enka network url for avatar ids to avatar icons in a js object
+    avatar_url = "https://enka.network/_app/immutable/chunks/pfps.94a09dfc.js"
+    req = requests.get(avatar_url)
+    if (req.status_code == 200):
+        js = req.content.decode('utf-8')
+        js_objs = js.replace('const n=', '').replace(';export{t as G,n as H};\n', '')
+        # only want the second object t, I don't think I care about the first one n
+        # find index of the second object
+        avatar_dict_idx = js_objs.find(',t=') + 3
+        avatar_dict_js = js_objs[avatar_dict_idx:]
+        # parse the js object into a python dictionary
+        avatar_icon_dict = chompjs.parse_js_object(avatar_dict_js)
+        # get the avatar icon url from the dictionary
+        iconPath = avatar_icon_dict[str(avatarId)]['iconPath']
+        avatar_icon_url = f"https://enka.network/ui/{iconPath}.png"
+        icon_req = requests.get(avatar_icon_url)
+        if (icon_req.status_code == 200):
+            return icon_req.url
+    return ""
+
+"""
+    Get a Genshin Account's Name Card
+
+    Parameters:
+        nameCardId: int - Genshin player NameCard id
+
+    Returns:
+        str - Genshin player name card url or empty string if no name card was found
+"""
+def getNameCard(nameCardId: int):
+     # Namecard
     res_url = f"https://api.ambr.top/v2/EN/namecard/{nameCardId}?vh=44F5"
     res = requests.get(res_url).json()
     if res["response"] == 200:
         data = res["data"]
         iconName = data['icon'].replace("Icon", "Pic")
-        print("iconName: ", str(iconName))
         url = f"https://api.ambr.top/assets/UI/namecard/{iconName}_P.png?vh=2024020300"
         namecard_response = requests.get(url)
         if namecard_response.status_code == 200:
-            namecard = namecard_response.url
-    e1.set_image(url=namecard)
-    embeds.append(e1)
-    return embeds
+            return namecard_response.url
+    return ""
 
 async def get_user_showcase(uid: int, discord_id: int):
     # If UID is not provided, look for the author's UID
