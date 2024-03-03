@@ -305,7 +305,6 @@ def get_talent_books():
 """
 def get_daily_talent_books_embeds():
     books = get_daily_talent_books()
-    today = WEEKDAYS[datetime.datetime.now().weekday()]
     embeds = []
     for book in books:
         icon = get_guide_icon(book)

@@ -102,6 +102,8 @@ async def get_genshin_api_user_summary(discord_id: int, uid: int = False):
         # Get author's UID
         author = get_user_from_db(discord_id)
         uid = author['uid']
+        # TODO: If no uid was found, the discord user has not linked their own genshin uid yet.
+
     client = await get_genshin_api_client(discord_id)
     user = await client.get_genshin_user(uid)
     summary_str = f"Nickname: {user.info.nickname}\n"

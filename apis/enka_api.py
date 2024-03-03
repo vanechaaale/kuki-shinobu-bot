@@ -30,34 +30,47 @@ async def get_enka_user_summary(discord_id: int, uid: int = False):
     user = await client.fetch_user(uid)
     nameCardId = user.player.nameCardId
     avatarId = user.player.profilePicture.avatarId
-    summary_str = []
+    summary_f1 = []
+    summary_f2 = []
 
     # case for unknown characters in username (looking at you, Greg)
     try: 
         title = user.player.nickname
-        summary_str.append(f"UID: {uid}\n")
+        summary_f1.append(f"UID: `{uid}`\n")
     except UnicodeEncodeError:
-        title = str(uid)
+        title = f"Player {str(uid)}"
         
-    summary_str.append(f"Level: {user.player.level}\n")
-    summary_str.append(f'Signature: {user.player.signature}\n')
-    summary_str.append(f'Spiral Abyss: {user.player.towerFloorIndex}-{user.player.towerLevelIndex}\n')
-    summary_str = ''.join(summary_str)
+    summary_f1.append(f"Level: `{user.player.level}`\n Signature: `{user.player.signature}`\n")
+    summary_f1 = ''.join(summary_f1)
 
-    embeds = get_enka_user_summary_embeds(title=title, avatarId=avatarId, p1=summary_str, nameCardId=nameCardId)
+    # Achievements, days active
+    summary_f2 = f"Achievements: `{user.player.finishAchievementNum}` \n Spiral Abyss: `{user.player.towerFloorIndex}-{user.player.towerLevelIndex}` \n"
+
+    p1_fields = [summary_f1, summary_f2]
+    p1_fields.append()
+
+    embeds = get_enka_user_summary_embeds(title=title, avatarId=avatarId, p1=p1_fields, nameCardId=nameCardId)
     return embeds
 
-def get_enka_user_summary_embeds(nameCardId: int, avatarId : int, title: str, p1: str, p2=None, p3=None):
+def get_enka_user_summary_embeds(nameCardId: int, avatarId : int, title: str, p1: list, p2=None, p3=None):
     embeds = []
+
+    nameCard = getNameCard(nameCardId)
+    profilePicture, icon = getProfilePicture(avatarId)
+
     e1 = create_embed(
-        title=title,
+        # Title: Player Summary
+        # Name: Nickname / UID if error
+        title=" ",
         name=" ",
-        text=p1,
+        text=p1[0],
+        icon=icon,
         color=VISION_TO_COLOR["Anemo"]
     )
-    nameCard = getNameCard(nameCardId)
-    profilePicture = getProfilePicture(avatarId)
+    for i in range(1, len(p1)):
+        e1.add_field(name=" ", value=p1[i], inline=False)
     
+    e1.set_author(name=f"{title} Player Summary", icon_url=icon)
     e1.set_thumbnail(url=profilePicture)
     e1.set_image(url=nameCard)
     embeds.append(e1)
@@ -90,7 +103,7 @@ def getProfilePicture(avatarId: int):
         avatar_icon_url = f"https://enka.network/ui/{iconPath}.png"
         icon_req = requests.get(avatar_icon_url)
         if (icon_req.status_code == 200):
-            return icon_req.url
+            return icon_req.url, avatar_icon_url
     return ""
 
 """
